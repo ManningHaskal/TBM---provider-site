@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { signupAction, type AuthActionState } from "@/lib/actions/auth";
+import { TextLink } from "@/components/ui/link-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
@@ -20,24 +20,24 @@ export function SignupForm({ inviteToken, inviteValid }: SignupFormProps) {
   if (!inviteValid || !inviteToken) {
     return (
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 text-center">
-        <Logo size="lg" showTagline />
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+        <Logo size="lg" showTagline variant="hero" />
+        <div className="tbm-card px-6 py-8 text-sm text-tbm-text-muted">
           Account creation requires a valid invite link from your TexBioMed representative.
         </div>
-        <Link href="/" className="text-sm font-medium text-teal-800 hover:underline">
+        <TextLink href="/" className="text-white hover:text-white/80">
           Back to sign in
-        </Link>
+        </TextLink>
       </div>
     );
   }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-8">
-      <Logo size="lg" showTagline />
-      <form action={formAction} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Logo size="lg" showTagline variant="hero" />
+      <form action={formAction} className="tbm-card p-8">
         <input type="hidden" name="invite" value={inviteToken} />
-        <h1 className="mb-2 text-xl font-semibold text-slate-900">Create account</h1>
-        <p className="mb-6 text-sm text-slate-600">
+        <h1 className="tbm-heading mb-2 text-2xl font-semibold">Create account</h1>
+        <p className="mb-6 text-sm text-tbm-text-muted">
           Complete your provider profile to start placing orders.
         </p>
         <div className="flex flex-col gap-4">
@@ -54,12 +54,12 @@ export function SignupForm({ inviteToken, inviteValid }: SignupFormProps) {
             required
           />
           {state.error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-tbm-red">
               {state.error}
             </p>
           ) : null}
           {state.success ? (
-            <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            <p className="rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">
               {state.success}
             </p>
           ) : null}

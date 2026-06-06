@@ -96,8 +96,8 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
             onClick={() => setPatientMode("existing")}
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
               patientMode === "existing"
-                ? "bg-teal-700 text-white"
-                : "bg-slate-100 text-slate-700"
+                ? "bg-tbm-red text-white"
+                : "bg-tbm-accent text-tbm-navy"
             }`}
           >
             Existing patient
@@ -107,8 +107,8 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
             onClick={() => setPatientMode("new")}
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
               patientMode === "new"
-                ? "bg-teal-700 text-white"
-                : "bg-slate-100 text-slate-700"
+                ? "bg-tbm-red text-white"
+                : "bg-tbm-accent text-tbm-navy"
             }`}
           >
             New patient
@@ -117,11 +117,11 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
 
         {patientMode === "existing" ? (
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Select patient</span>
+            <span className="font-medium text-tbm-navy">Select patient</span>
             <select
               value={selectedPatientId}
               onChange={(event) => setSelectedPatientId(event.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+              className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
             >
               <option value="">Choose a patient</option>
               {patients.map((patient) => (
@@ -140,10 +140,10 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
             <Input label="Weight" name="weight" placeholder="e.g. 165 lbs" />
             <Input label="Height" name="height" placeholder={'e.g. 5\'10"'} />
             <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-slate-700">Sex</span>
+              <span className="font-medium text-tbm-navy">Sex</span>
               <select
                 name="sex"
-                className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+                className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
               >
                 <option value="">Select</option>
                 <option value="Female">Female</option>
@@ -153,11 +153,11 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="font-medium text-slate-700">Shipping address</span>
+              <span className="font-medium text-tbm-navy">Shipping address</span>
               <textarea
                 name="shipping_address"
                 rows={3}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+                className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
               />
             </label>
           </div>
@@ -171,16 +171,16 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
             return (
               <div
                 key={`${item.productSku}-${index}`}
-                className="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2fr_1fr_auto]"
+                className="grid gap-3 rounded-xl border border-tbm-border p-4 sm:grid-cols-[2fr_1fr_auto]"
               >
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">Product</span>
+                  <span className="font-medium text-tbm-navy">Product</span>
                   <select
                     value={item.productSku}
                     onChange={(event) =>
                       updateLineItem(index, { productSku: event.target.value })
                     }
-                    className="rounded-lg border border-slate-300 px-3 py-2"
+                    className="rounded-lg border border-tbm-border px-3 py-2"
                   >
                     {products.map((productOption) => (
                       <option key={productOption.sku} value={productOption.sku}>
@@ -190,7 +190,7 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-slate-700">Quantity</span>
+                  <span className="font-medium text-tbm-navy">Quantity</span>
                   <input
                     type="number"
                     min={1}
@@ -200,11 +200,11 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
                         quantity: Number.parseInt(event.target.value, 10) || 1,
                       })
                     }
-                    className="rounded-lg border border-slate-300 px-3 py-2"
+                    className="rounded-lg border border-tbm-border px-3 py-2"
                   />
                 </label>
                 <div className="flex items-end justify-between gap-3 sm:flex-col sm:items-stretch">
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-tbm-text-muted">
                     Line total: $
                     {((product?.price ?? 0) * item.quantity).toFixed(2)}
                   </p>
@@ -229,20 +229,20 @@ export function OrderForm({ products, patients, reorderFrom }: OrderFormProps) {
 
       <Card title="Notes">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-slate-700">Order notes (optional)</span>
+          <span className="font-medium text-tbm-navy">Order notes (optional)</span>
           <textarea
             name="notes"
             rows={3}
             defaultValue={reorderFrom?.notes ?? ""}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+            className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
           />
         </label>
       </Card>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-tbm-border bg-tbm-accent-light p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-slate-600">Estimated order total</p>
-          <p className="text-2xl font-semibold text-slate-900">
+          <p className="text-sm text-tbm-text-muted">Estimated order total</p>
+          <p className="text-2xl font-semibold text-tbm-navy">
             ${orderTotal.toFixed(2)}
           </p>
         </div>

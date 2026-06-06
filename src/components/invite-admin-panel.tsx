@@ -35,7 +35,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
   return (
     <div className="flex flex-col gap-6">
       <Card title="Generate invite">
-        <p className="mb-4 text-sm text-slate-600">
+        <p className="mb-4 text-sm text-tbm-text-muted">
           Create a single-use invite link valid for 7 days. Send it to the provider
           so they can create their account.
         </p>
@@ -48,9 +48,9 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
           </p>
         ) : null}
         {inviteUrl ? (
-          <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4">
-            <p className="mb-2 text-sm font-medium text-teal-900">New invite link</p>
-            <p className="break-all text-sm text-teal-800">{inviteUrl}</p>
+          <div className="mt-4 rounded-lg border border-tbm-red/20 bg-red-50 p-4">
+            <p className="mb-2 text-sm font-medium text-tbm-navy">New invite link</p>
+            <p className="break-all text-sm text-tbm-red">{inviteUrl}</p>
             <Button
               type="button"
               variant="secondary"
@@ -66,7 +66,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
       <Card title="Recent invites">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
+            <thead className="border-b border-tbm-border text-tbm-text-muted">
               <tr>
                 <th className="px-2 py-2 font-medium">Created</th>
                 <th className="px-2 py-2 font-medium">Expires</th>
@@ -76,13 +76,13 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
             <tbody>
               {invites.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-2 py-4 text-slate-500">
+                  <td colSpan={3} className="px-2 py-4 text-tbm-text-muted">
                     No invites yet.
                   </td>
                 </tr>
               ) : (
                 invites.map((invite) => (
-                  <tr key={invite.id} className="border-b border-slate-100">
+                  <tr key={invite.id} className="border-b border-tbm-border">
                     <td className="px-2 py-3">
                       {new Date(invite.created_at).toLocaleString()}
                     </td>
@@ -91,7 +91,7 @@ export function InviteAdminPanel({ invites }: InviteAdminPanelProps) {
                     </td>
                     <td className="px-2 py-3">
                       {invite.used_at ? (
-                        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                        <span className="rounded-full bg-tbm-accent px-2 py-1 text-xs font-medium text-tbm-navy">
                           Used
                         </span>
                       ) : new Date(invite.expires_at) < new Date() ? (

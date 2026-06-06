@@ -11,14 +11,14 @@ export default async function OrdersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Orders</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="text-2xl font-semibold text-tbm-navy">Orders</h1>
+          <p className="text-sm text-tbm-text-muted">
             Review recent orders and place new ones for your patients.
           </p>
         </div>
         <Link
           href="/orders/new"
-          className="inline-flex rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
+          className="inline-flex rounded-lg bg-tbm-red px-4 py-2 text-sm font-medium text-white hover:bg-tbm-red-dark"
         >
           New order
         </Link>
@@ -27,7 +27,7 @@ export default async function OrdersPage() {
       <Card>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
+            <thead className="border-b border-tbm-border text-tbm-text-muted">
               <tr>
                 <th className="px-2 py-2 font-medium">Date</th>
                 <th className="px-2 py-2 font-medium">Patient</th>
@@ -39,13 +39,13 @@ export default async function OrdersPage() {
             <tbody>
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-2 py-6 text-slate-500">
+                  <td colSpan={5} className="px-2 py-6 text-tbm-text-muted">
                     No orders yet.
                   </td>
                 </tr>
               ) : (
                 orders.map((order) => (
-                  <tr key={order.id} className="border-b border-slate-100">
+                  <tr key={order.id} className="border-b border-tbm-border">
                     <td className="px-2 py-3">
                       {new Date(order.created_at).toLocaleString()}
                     </td>

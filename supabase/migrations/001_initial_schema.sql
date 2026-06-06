@@ -155,3 +155,11 @@ create policy "Admins manage invite tokens"
   for all
   using (public.is_admin())
   with check (public.is_admin());
+
+grant usage on schema public to postgres, anon, authenticated, service_role;
+
+grant all on all tables in schema public to postgres, service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+
+grant all on all sequences in schema public to postgres, service_role;
+grant usage, select on all sequences in schema public to authenticated;

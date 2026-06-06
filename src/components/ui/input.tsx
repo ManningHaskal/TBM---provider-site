@@ -9,10 +9,10 @@ export function Input({ label, className = "", id, ...props }: InputProps) {
 
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-tbm-navy">{label}</span>
       <input
         id={inputId}
-        className={`rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-teal-700/20 focus:border-teal-700 focus:ring-4 ${className}`}
+        className={`rounded-xl border border-tbm-border bg-white px-3 py-2.5 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4 ${className}`}
         {...props}
       />
     </label>

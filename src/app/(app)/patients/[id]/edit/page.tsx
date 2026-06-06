@@ -21,11 +21,11 @@ export default async function EditPatientPage({ params }: EditPatientPageProps) 
       <div>
         <Link
           href={`/patients/${patient.id}`}
-          className="text-sm font-medium text-teal-800 hover:underline"
+          className="text-sm font-medium text-tbm-red hover:underline"
         >
           Back to patient
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Edit patient</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-tbm-navy">Edit patient</h1>
       </div>
       <Card>
         <PatientForm patient={patient} />

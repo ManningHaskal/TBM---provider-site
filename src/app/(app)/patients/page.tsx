@@ -14,14 +14,14 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Patients</h1>
-          <p className="text-sm text-slate-600">
+          <h1 className="tbm-heading text-2xl font-semibold">Patients</h1>
+          <p className="text-sm text-tbm-text-muted">
             Manage patient records and review order history.
           </p>
         </div>
         <Link
           href="/patients/new"
-          className="inline-flex rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
+          className="inline-flex rounded-full bg-tbm-red px-6 py-3 text-sm font-semibold text-white hover:bg-tbm-red-dark"
         >
           Add patient
         </Link>
@@ -30,17 +30,17 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
       <Card>
         <form action="/patients" method="get" className="mb-6">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">Search patients</span>
+            <span className="font-medium text-tbm-navy">Search patients</span>
             <div className="flex gap-2">
               <input
                 name="q"
                 defaultValue={params.q ?? ""}
                 placeholder="Search by name or email"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+                className="flex-1 rounded-lg border border-tbm-border px-3 py-2"
               />
               <button
                 type="submit"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-tbm-border px-4 py-2 text-sm font-medium text-tbm-navy hover:bg-tbm-accent-light"
               >
                 Search
               </button>
@@ -50,7 +50,7 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
+            <thead className="border-b border-tbm-border text-tbm-text-muted">
               <tr>
                 <th className="px-2 py-2 font-medium">Name</th>
                 <th className="px-2 py-2 font-medium">Email</th>
@@ -61,14 +61,14 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
             <tbody>
               {patients.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-2 py-6 text-slate-500">
+                  <td colSpan={4} className="px-2 py-6 text-tbm-text-muted">
                     No patients found.
                   </td>
                 </tr>
               ) : (
                 patients.map((patient) => (
-                  <tr key={patient.id} className="border-b border-slate-100">
-                    <td className="px-2 py-3 font-medium text-slate-900">
+                  <tr key={patient.id} className="border-b border-tbm-border">
+                    <td className="px-2 py-3 font-medium text-tbm-navy">
                       {patient.full_name}
                     </td>
                     <td className="px-2 py-3">{patient.email ?? "—"}</td>
@@ -76,7 +76,7 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
                     <td className="px-2 py-3">
                       <Link
                         href={`/patients/${patient.id}`}
-                        className="font-medium text-teal-800 hover:underline"
+                        className="font-medium text-tbm-red hover:underline"
                       >
                         View
                       </Link>

@@ -21,13 +21,13 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href="/orders" className="text-sm font-medium text-teal-800 hover:underline">
+        <Link href="/orders" className="text-sm font-medium text-tbm-red hover:underline">
           Back to orders
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+        <h1 className="mt-2 text-2xl font-semibold text-tbm-navy">
           {reorderFrom ? "Reorder" : "New order"}
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-tbm-text-muted">
           Select a patient and choose peptide products for this order.
         </p>
       </div>

@@ -1,20 +1,21 @@
-import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { LinkButton } from "@/components/ui/link-button";
 import { Card } from "@/components/ui/card";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col gap-8">
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-teal-700 to-teal-900 px-6 py-12 text-white shadow-sm sm:px-10">
+      <section className="tbm-hero-gradient overflow-hidden rounded-[30px] px-6 py-12 shadow-[0_0_7px_rgba(0,0,0,0.1)] sm:px-10">
         <div className="flex flex-col items-center gap-6 text-center">
-          <div className="rounded-3xl bg-white/95 p-6 shadow-sm">
-            <Logo size="lg" variant="hero" />
+          <span className="tbm-badge">Trusted Quality</span>
+          <div className="rounded-[30px] bg-white/95 p-6 shadow-sm">
+            <Logo size="lg" />
           </div>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Welcome to the TexBioMed provider portal
+            <h1 className="tbm-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Precision ordering for medical providers
             </h1>
-            <p className="mt-3 max-w-2xl text-teal-50">
+            <p className="mx-auto mt-3 max-w-2xl text-base text-white/90">
               Place peptide orders on behalf of your patients. TexBioMed will invoice
               the patient directly and ship once payment is received.
             </p>
@@ -24,26 +25,18 @@ export default function HomePage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card title="Place an order">
-          <p className="mb-4 text-sm text-slate-600">
+          <p className="mb-5 text-sm text-tbm-text-muted">
             Start a new order or repeat a recent one for an existing patient.
           </p>
-          <Link
-            href="/orders/new"
-            className="inline-flex rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
-          >
-            Create new order
-          </Link>
+          <LinkButton href="/orders/new">Create new order</LinkButton>
         </Card>
         <Card title="Manage patients">
-          <p className="mb-4 text-sm text-slate-600">
+          <p className="mb-5 text-sm text-tbm-text-muted">
             View and update patient information and review previous orders.
           </p>
-          <Link
-            href="/patients"
-            className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
-          >
+          <LinkButton href="/patients" variant="secondary">
             View patients
-          </Link>
+          </LinkButton>
         </Card>
       </div>
     </div>

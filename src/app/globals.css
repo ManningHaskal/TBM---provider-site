@@ -1,19 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --tbm-navy: #071f36;
+  --tbm-red: #ba1e2f;
+  --tbm-red-dark: #9f0415;
+  --tbm-blue: #2c4a6e;
+  --tbm-accent: #e6eef5;
+  --tbm-accent-light: #eaf1f8;
+  --tbm-page: #f7fafc;
+  --tbm-surface: #ffffff;
+  --tbm-text: #071f36;
+  --tbm-text-muted: #2c4a6e;
+  --tbm-border: #d6dce3;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-tbm-navy: var(--tbm-navy);
+  --color-tbm-red: var(--tbm-red);
+  --color-tbm-red-dark: var(--tbm-red-dark);
+  --color-tbm-blue: var(--tbm-blue);
+  --color-tbm-accent: var(--tbm-accent);
+  --color-tbm-accent-light: var(--tbm-accent-light);
+  --color-tbm-page: var(--tbm-page);
+  --color-tbm-surface: var(--tbm-surface);
+  --color-tbm-text: var(--tbm-text);
+  --color-tbm-text-muted: var(--tbm-text-muted);
+  --color-tbm-border: var(--tbm-border);
+  --font-sans: var(--font-poppins);
+  --font-display: var(--font-roboto-slab);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--tbm-page);
+  color: var(--tbm-text);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+}
+
+.tbm-hero-gradient {
+  background: linear-gradient(135deg, #f7fafc 30%, #2c4a6e 100%);
+}
+
+.tbm-card {
+  border-radius: 30px;
+  background: var(--tbm-surface);
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.1);
+}
+
+.tbm-card-muted {
+  border-radius: 30px;
+  background: var(--tbm-accent-light);
+  border: 1px solid rgba(7, 31, 54, 0.08);
+}
+
+.tbm-heading {
+  font-family: var(--font-roboto-slab), Georgia, serif;
+  color: var(--tbm-navy);
+}
+
+.tbm-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tbm-blue);
 }

@@ -26,10 +26,10 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link href="/patients" className="text-sm font-medium text-teal-800 hover:underline">
+          <Link href="/patients" className="text-sm font-medium text-tbm-red hover:underline">
             Back to patients
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+          <h1 className="mt-2 text-2xl font-semibold text-tbm-navy">
             {patient.full_name}
           </h1>
         </div>
@@ -42,34 +42,34 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
         <Card title="Patient information">
           <dl className="grid gap-3 text-sm">
             <div>
-              <dt className="text-slate-500">Email</dt>
-              <dd className="font-medium text-slate-900">{patient.email ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Email</dt>
+              <dd className="font-medium text-tbm-navy">{patient.email ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Phone</dt>
-              <dd className="font-medium text-slate-900">{patient.phone ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Phone</dt>
+              <dd className="font-medium text-tbm-navy">{patient.phone ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Date of birth</dt>
-              <dd className="font-medium text-slate-900">
+              <dt className="text-tbm-text-muted">Date of birth</dt>
+              <dd className="font-medium text-tbm-navy">
                 {patient.date_of_birth ?? "—"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Weight</dt>
-              <dd className="font-medium text-slate-900">{patient.weight ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Weight</dt>
+              <dd className="font-medium text-tbm-navy">{patient.weight ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Height</dt>
-              <dd className="font-medium text-slate-900">{patient.height ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Height</dt>
+              <dd className="font-medium text-tbm-navy">{patient.height ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Sex</dt>
-              <dd className="font-medium text-slate-900">{patient.sex ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Sex</dt>
+              <dd className="font-medium text-tbm-navy">{patient.sex ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Shipping address</dt>
-              <dd className="font-medium text-slate-900 whitespace-pre-wrap">
+              <dt className="text-tbm-text-muted">Shipping address</dt>
+              <dd className="font-medium text-tbm-navy whitespace-pre-wrap">
                 {patient.shipping_address ?? "—"}
               </dd>
             </div>
@@ -78,20 +78,20 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
 
         <Card title="Recent orders">
           {orders.length === 0 ? (
-            <p className="text-sm text-slate-600">No orders yet for this patient.</p>
+            <p className="text-sm text-tbm-text-muted">No orders yet for this patient.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {orders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-xl border border-slate-200 p-4"
+                  className="rounded-xl border border-tbm-border p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-tbm-navy">
                         {new Date(order.created_at).toLocaleString()}
                       </p>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 text-sm text-tbm-text-muted">
                         {order.order_items
                           ?.map(
                             (item: {

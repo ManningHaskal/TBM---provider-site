@@ -67,11 +67,11 @@ export function PatientForm({ patient }: PatientFormProps) {
         />
       </div>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-slate-700">Sex</span>
+        <span className="font-medium text-tbm-navy">Sex</span>
         <select
           name="sex"
           defaultValue={patient?.sex ?? ""}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-teal-700/20 focus:border-teal-700 focus:ring-4"
+          className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
         >
           <option value="">Select</option>
           {sexOptions.map((option) => (
@@ -82,12 +82,12 @@ export function PatientForm({ patient }: PatientFormProps) {
         </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-slate-700">Shipping address</span>
+        <span className="font-medium text-tbm-navy">Shipping address</span>
         <textarea
           name="shipping_address"
           rows={3}
           defaultValue={patient?.shipping_address ?? ""}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-teal-700/20 focus:border-teal-700 focus:ring-4"
+          className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
         />
       </label>
       {state.error ? (
