@@ -8,6 +8,7 @@ create table public.providers (
   full_name text not null,
   practice_name text not null,
   phone text,
+  clinic_shipping_address text,
   role text not null default 'provider' check (role in ('provider', 'admin')),
   created_at timestamptz not null default now()
 );
@@ -25,7 +26,8 @@ create table public.invite_tokens (
 create table public.patients (
   id uuid primary key default gen_random_uuid(),
   provider_id uuid references public.providers(id) on delete cascade not null,
-  full_name text not null,
+  first_name text not null,
+  last_name text not null,
   email text,
   phone text,
   date_of_birth text,
@@ -42,6 +44,8 @@ create table public.orders (
   provider_id uuid references public.providers(id) on delete cascade not null,
   patient_id uuid references public.patients(id) on delete restrict not null,
   notes text,
+  ship_to text check (ship_to in ('clinic', 'patient')),
+  shipping_address text,
   sync_error text,
   created_at timestamptz not null default now()
 );
@@ -112,6 +116,12 @@ create policy "Providers can read own profile"
   on public.providers
   for select
   using (user_id = auth.uid());
+
+create policy "Providers can update own profile"
+  on public.providers
+  for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 
 create policy "Admins can read all providers"
   on public.providers

@@ -53,12 +53,15 @@ export async function signupAction(
   const fullName = String(formData.get("full_name") ?? "").trim();
   const practiceName = String(formData.get("practice_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
+  const clinicShippingAddress = String(
+    formData.get("clinic_shipping_address") ?? "",
+  ).trim();
 
   if (!inviteToken) {
     return { error: "A valid invite link is required to create an account." };
   }
 
-  if (!email || !password || !fullName || !practiceName) {
+  if (!email || !password || !fullName || !practiceName || !clinicShippingAddress) {
     return { error: "Please complete all required fields." };
   }
 
@@ -98,6 +101,7 @@ export async function signupAction(
       full_name: fullName,
       practice_name: practiceName,
       phone: phone || null,
+      clinic_shipping_address: clinicShippingAddress,
       role: "provider",
     })
     .select("*")

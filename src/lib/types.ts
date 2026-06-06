@@ -1,11 +1,14 @@
 export type ProviderRole = "provider" | "admin";
 
+export type ShipTo = "clinic" | "patient";
+
 export type Provider = {
   id: string;
   user_id: string;
   full_name: string;
   practice_name: string;
   phone: string | null;
+  clinic_shipping_address: string | null;
   role: ProviderRole;
   created_at: string;
 };
@@ -13,7 +16,8 @@ export type Provider = {
 export type Patient = {
   id: string;
   provider_id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string | null;
   phone: string | null;
   date_of_birth: string | null;
@@ -30,6 +34,8 @@ export type Order = {
   provider_id: string;
   patient_id: string;
   notes: string | null;
+  ship_to: ShipTo | null;
+  shipping_address: string | null;
   sync_error: string | null;
   created_at: string;
 };
@@ -45,10 +51,16 @@ export type OrderItem = {
 
 export type Product = {
   name: string;
+  baseName: string;
+  variantLabel: string;
   sku: string;
   price: number;
   active: boolean;
   sortOrder: number;
+  category: string;
+  dose?: string;
+  form?: string;
+  deliveryMethod?: string;
 };
 
 export type InviteToken = {
@@ -64,20 +76,22 @@ export type OrderWithDetails = Order & {
   patient: Pick<
     Patient,
     | "id"
-    | "full_name"
+    | "first_name"
+    | "last_name"
     | "email"
     | "phone"
-    | "shipping_address"
     | "date_of_birth"
     | "weight"
     | "height"
     | "sex"
+    | "shipping_address"
   >;
   order_items: OrderItem[];
 };
 
 export type PatientFormData = {
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   date_of_birth: string;
@@ -91,3 +105,5 @@ export type OrderLineInput = {
   productSku: string;
   quantity: number;
 };
+
+export type ProductCategoryFilter = "all" | string;

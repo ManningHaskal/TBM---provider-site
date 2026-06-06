@@ -3,6 +3,7 @@ import {
   getOrderById,
   loadPatientsForOrderForm,
   loadProductsForOrderForm,
+  loadProviderShippingForOrderForm,
 } from "@/lib/actions/orders";
 import { OrderForm } from "@/components/order-form";
 
@@ -12,9 +13,10 @@ type NewOrderPageProps = {
 
 export default async function NewOrderPage({ searchParams }: NewOrderPageProps) {
   const params = await searchParams;
-  const [products, patients, reorderFrom] = await Promise.all([
+  const [products, patients, clinicShippingAddress, reorderFrom] = await Promise.all([
     loadProductsForOrderForm(),
     loadPatientsForOrderForm(),
+    loadProviderShippingForOrderForm(),
     params.reorder ? getOrderById(params.reorder) : Promise.resolve(null),
   ]);
 
@@ -35,6 +37,7 @@ export default async function NewOrderPage({ searchParams }: NewOrderPageProps) 
       <OrderForm
         products={products}
         patients={patients}
+        clinicShippingAddress={clinicShippingAddress}
         reorderFrom={reorderFrom ?? undefined}
       />
     </div>

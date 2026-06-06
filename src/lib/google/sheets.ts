@@ -1,23 +1,20 @@
 import { google } from "googleapis";
-import catalogProducts from "@/data/products.json";
+import {
+  loadFallbackProductsFromJson,
+  loadProductsFromXlsx,
+  parseProductRecords,
+} from "@/lib/products/catalog";
+import { sortProductsByCategory } from "@/lib/products/grouping";
 import type { Product } from "@/lib/types";
 
 const PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let productsCache: { expiresAt: number; products: Product[] } | null = null;
 
-const FALLBACK_PRODUCTS: Product[] = catalogProducts.map((product) => ({
-  name: product.name,
-  sku: product.sku,
-  price: product.price,
-  active: product.active,
-  sortOrder: product.sortOrder,
-}));
-
 function getSheetsClient() {
   const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 
-  if (!json) {
+  if (!json || json.includes('"project_id":"..."')) {
     return null;
   }
 
@@ -31,7 +28,7 @@ function getSheetsClient() {
 }
 
 function parseBoolean(value: string | undefined): boolean {
-  if (!value) return false;
+  if (!value) return true;
   const normalized = value.trim().toLowerCase();
   return normalized === "true" || normalized === "yes" || normalized === "1";
 }
@@ -43,25 +40,45 @@ function parseProductsRows(rows: string[][]): Product[] {
 
   const headers = rows[0].map((header) => header.trim().toLowerCase());
 
-  return rows
-    .slice(1)
-    .map((row) => {
-      const record: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        record[header] = row[index]?.trim() ?? "";
-      });
+  const records = rows.slice(1).map((row) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      record[header] = row[index]?.trim() ?? "";
+    });
+    return record;
+  });
 
-      const price = Number.parseFloat(record.price ?? "0");
+  return parseProductRecords(
+    records.map((record) => ({
+      product_id: record["product id"] ?? record.sku,
+      product: record.product ?? record.name,
+      dose: record.dose,
+      form: record.form,
+      delivery_method: record.delivery ?? record.delivery_method,
+      price: record.price,
+      category: record.category,
+      active: record.active,
+      sort_order: record.sort_order,
+      name: record.name,
+      sku: record.sku,
+    })),
+  );
+}
 
-      return {
-        name: record.name ?? "",
-        sku: record.sku ?? "",
-        price: Number.isFinite(price) ? price : 0,
-        active: parseBoolean(record.active),
-        sortOrder: Number.parseInt(record.sort_order ?? "0", 10) || 0,
-      } satisfies Product;
-    })
-    .filter((product) => product.name && product.sku);
+function loadLocalProducts(): Product[] {
+  const fromXlsx = loadProductsFromXlsx();
+  if (fromXlsx.length > 0) {
+    return fromXlsx;
+  }
+
+  return loadFallbackProductsFromJson();
+}
+
+function setProductsCache(products: Product[]) {
+  productsCache = {
+    expiresAt: Date.now() + PRODUCTS_CACHE_TTL_MS,
+    products,
+  };
 }
 
 export async function getProducts(forceRefresh = false): Promise<Product[]> {
@@ -74,33 +91,30 @@ export async function getProducts(forceRefresh = false): Promise<Product[]> {
   const sheetId = process.env.GOOGLE_PRODUCTS_SHEET_ID;
   const sheets = getSheetsClient();
 
-  if (!sheetId || !sheets) {
-    productsCache = {
-      expiresAt: now + PRODUCTS_CACHE_TTL_MS,
-      products: FALLBACK_PRODUCTS,
-    };
-    return FALLBACK_PRODUCTS;
+  if (!sheetId || !sheets || sheetId === "your-products-sheet-id") {
+    const products = loadLocalProducts();
+    setProductsCache(products);
+    return products;
   }
 
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: "Products!A:E",
+      range: "Products!A:G",
     });
 
-    const products = parseProductsRows(response.data.values ?? [])
-      .filter((product) => product.active)
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    const products = sortProductsByCategory(
+      parseProductsRows(response.data.values ?? []).filter((product) => product.active),
+    );
 
-    productsCache = {
-      expiresAt: now + PRODUCTS_CACHE_TTL_MS,
-      products: products.length > 0 ? products : FALLBACK_PRODUCTS,
-    };
-
-    return productsCache.products;
+    const resolved = products.length > 0 ? products : loadLocalProducts();
+    setProductsCache(resolved);
+    return resolved;
   } catch (error) {
     console.error("Failed to load products from Google Sheet:", error);
-    return productsCache?.products ?? FALLBACK_PRODUCTS;
+    const products = productsCache?.products ?? loadLocalProducts();
+    setProductsCache(products);
+    return products;
   }
 }
 
@@ -121,7 +135,7 @@ export async function appendOrderToSheet(payload: OrderSheetPayload): Promise<vo
   const sheetId = process.env.GOOGLE_ORDERS_SHEET_ID;
   const sheets = getSheetsClient();
 
-  if (!sheetId || !sheets) {
+  if (!sheetId || !sheets || sheetId === "your-orders-sheet-id") {
     console.warn("Orders sheet not configured; skipping Google Sheets append.");
     return;
   }

@@ -81,13 +81,13 @@ npm run dev
 
 Create a sheet tab named `Products` with headers:
 
-| name | sku | price | active | sort_order |
+| name | sku | price | active | sort_order | category |
 
 Share the sheet with your Google service account email (Viewer access is enough).
 
 Set `GOOGLE_PRODUCTS_SHEET_ID` in `.env.local`.
 
-If Sheets are not configured yet, the app falls back to sample products for local development.
+If Sheets are not configured yet, the app reads products from [`Healthcare Provider Live Products & Prices.xlsx`](Healthcare%20Provider%20Live%20Products%20&%20Prices.xlsx) in the project root. After editing that file, run `npm run import:products` to refresh the bundled copy, or restart the dev server to pick up live reads.
 
 ### Orders sheet
 

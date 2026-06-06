@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { formatPatientName } from "@/lib/format/patient";
 import type { OrderWithDetails } from "@/lib/types";
 import {
   calculateOrderTotal,
@@ -9,12 +10,16 @@ type SendOrderEmailInput = {
   order: OrderWithDetails;
   providerName: string;
   providerEmail: string;
+  shipTo: "clinic" | "patient";
+  shippingAddress: string;
 };
 
 export async function sendOrderNotificationEmail({
   order,
   providerName,
   providerEmail,
+  shipTo,
+  shippingAddress,
 }: SendOrderEmailInput): Promise<void> {
   const to = process.env.ORDER_NOTIFICATION_EMAIL;
   const from =
@@ -26,7 +31,7 @@ export async function sendOrderNotificationEmail({
     return;
   }
 
-  const patientName = order.patient.full_name;
+  const patientName = formatPatientName(order.patient);
   const lineItemsSummary = formatLineItemsSummary(order.order_items);
   const orderTotal = calculateOrderTotal(order.order_items);
   const subject = `New provider order ${order.id.slice(0, 8).toUpperCase()} — ${patientName}`;
@@ -45,7 +50,14 @@ export async function sendOrderNotificationEmail({
     `Name: ${patientName}`,
     `Email: ${order.patient.email ?? "N/A"}`,
     `Phone: ${order.patient.phone ?? "N/A"}`,
-    `Shipping address: ${order.patient.shipping_address ?? "N/A"}`,
+    `DOB: ${order.patient.date_of_birth ?? "N/A"}`,
+    `Weight: ${order.patient.weight ?? "N/A"}`,
+    `Height: ${order.patient.height ?? "N/A"}`,
+    `Sex: ${order.patient.sex ?? "N/A"}`,
+    "",
+    "Shipping",
+    `Ship to: ${shipTo === "clinic" ? "Clinic" : "Patient"}`,
+    shippingAddress,
     "",
     "Items",
     lineItemsSummary,

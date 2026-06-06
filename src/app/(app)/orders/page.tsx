@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatPatientName } from "@/lib/format/patient";
 import { getRecentOrders, reorderAction } from "@/lib/actions/orders";
 import { calculateOrderTotal } from "@/lib/google/sheets";
 import { Card } from "@/components/ui/card";
@@ -49,7 +50,7 @@ export default async function OrdersPage() {
                     <td className="px-2 py-3">
                       {new Date(order.created_at).toLocaleString()}
                     </td>
-                    <td className="px-2 py-3">{order.patient.full_name}</td>
+                    <td className="px-2 py-3">{formatPatientName(order.patient)}</td>
                     <td className="px-2 py-3">
                       {order.order_items
                         .map((item) => `${item.product_name} x${item.quantity}`)

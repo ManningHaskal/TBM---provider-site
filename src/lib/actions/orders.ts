@@ -10,8 +10,14 @@ import {
   formatLineItemsSummary,
   getProducts,
 } from "@/lib/google/sheets";
+import { formatPatientName } from "@/lib/format/patient";
+import {
+  readPatientFormData,
+  sanitizePatientInput,
+} from "@/lib/patient-form-data";
+import { normalizeShippingAddress } from "@/lib/shipping/addresses";
 import { createClient } from "@/lib/supabase/server";
-import type { OrderLineInput, OrderWithDetails, PatientFormData } from "@/lib/types";
+import type { OrderLineInput, OrderWithDetails, ShipTo } from "@/lib/types";
 
 export type OrderActionState = {
   error?: string;
@@ -59,33 +65,18 @@ async function resolvePatientId(
     return { patientId };
   }
 
-  const patientData: PatientFormData = {
-    full_name: String(formData.get("full_name") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim(),
-    phone: String(formData.get("phone") ?? "").trim(),
-    date_of_birth: String(formData.get("date_of_birth") ?? "").trim(),
-    weight: String(formData.get("weight") ?? "").trim(),
-    height: String(formData.get("height") ?? "").trim(),
-    sex: String(formData.get("sex") ?? "").trim(),
-    shipping_address: String(formData.get("shipping_address") ?? "").trim(),
-  };
+  const patientData = readPatientFormData(formData);
+  const payload = sanitizePatientInput(patientData);
 
-  if (!patientData.full_name) {
-    return { error: "Patient full name is required." };
+  if (!payload.first_name || !payload.last_name) {
+    return { error: "Patient first and last name are required." };
   }
 
   const { data, error } = await supabase
     .from("patients")
     .insert({
       provider_id: providerId,
-      full_name: patientData.full_name,
-      email: patientData.email || null,
-      phone: patientData.phone || null,
-      date_of_birth: patientData.date_of_birth || null,
-      weight: patientData.weight || null,
-      height: patientData.height || null,
-      sex: patientData.sex || null,
-      shipping_address: patientData.shipping_address || null,
+      ...payload,
     })
     .select("id")
     .single();
@@ -95,6 +86,65 @@ async function resolvePatientId(
   }
 
   return { patientId: data.id };
+}
+
+function parseShippingFromFormData(formData: FormData): {
+  shipTo?: ShipTo;
+  shippingAddress?: string;
+  error?: string;
+} {
+  const shipTo = String(formData.get("ship_to") ?? "").trim() as ShipTo;
+  const shippingAddress = normalizeShippingAddress(
+    String(formData.get("shipping_address") ?? ""),
+  );
+
+  if (shipTo !== "clinic" && shipTo !== "patient") {
+    return { error: "Please choose a shipping destination." };
+  }
+
+  if (!shippingAddress) {
+    return { error: "Shipping address is required." };
+  }
+
+  return { shipTo, shippingAddress };
+}
+
+async function persistShippingAddress({
+  shipTo,
+  shippingAddress,
+  providerId,
+  patientId,
+  providerClinicAddress,
+  patientAddress,
+}: {
+  shipTo: ShipTo;
+  shippingAddress: string;
+  providerId: string;
+  patientId: string;
+  providerClinicAddress: string | null;
+  patientAddress: string | null;
+}) {
+  const supabase = await createClient();
+
+  if (
+    shipTo === "clinic" &&
+    shippingAddress !== normalizeShippingAddress(providerClinicAddress ?? "")
+  ) {
+    await supabase
+      .from("providers")
+      .update({ clinic_shipping_address: shippingAddress })
+      .eq("id", providerId);
+  }
+
+  if (
+    shipTo === "patient" &&
+    shippingAddress !== normalizeShippingAddress(patientAddress ?? "")
+  ) {
+    await supabase
+      .from("patients")
+      .update({ shipping_address: shippingAddress })
+      .eq("id", patientId);
+  }
 }
 
 export async function submitOrderAction(
@@ -123,6 +173,13 @@ export async function submitOrderAction(
     return { error: patientError ?? "Patient is required." };
   }
 
+  const { shipTo, shippingAddress, error: shippingError } =
+    parseShippingFromFormData(formData);
+
+  if (shippingError || !shipTo || !shippingAddress) {
+    return { error: shippingError ?? "Shipping address is required." };
+  }
+
   const products = await getProducts(true);
   const productMap = new Map(products.map((product) => [product.sku, product]));
 
@@ -146,8 +203,10 @@ export async function submitOrderAction(
       provider_id: provider.id,
       patient_id: patientId,
       notes,
+      ship_to: shipTo,
+      shipping_address: shippingAddress,
     })
-    .select("id, created_at, provider_id, patient_id, notes, sync_error")
+    .select("id, created_at, provider_id, patient_id, notes, ship_to, shipping_address, sync_error")
     .single();
 
   if (orderError || !order) {
@@ -167,9 +226,20 @@ export async function submitOrderAction(
 
   const { data: patient } = await supabase
     .from("patients")
-    .select("id, full_name, email, phone, shipping_address, date_of_birth, weight, height, sex")
+    .select(
+      "id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address",
+    )
     .eq("id", patientId)
     .single();
+
+  await persistShippingAddress({
+    shipTo,
+    shippingAddress,
+    providerId: provider.id,
+    patientId,
+    providerClinicAddress: provider.clinic_shipping_address,
+    patientAddress: patient?.shipping_address ?? null,
+  });
 
   const orderWithDetails: OrderWithDetails = {
     ...order,
@@ -189,10 +259,10 @@ export async function submitOrderAction(
       orderId: order.id,
       providerName: provider.full_name,
       providerEmail: user?.email ?? "",
-      patientName: patient?.full_name ?? "",
+      patientName: patient ? formatPatientName(patient) : "",
       patientEmail: patient?.email ?? "",
       patientPhone: patient?.phone ?? "",
-      shippingAddress: patient?.shipping_address ?? "",
+      shippingAddress,
       lineItemsSummary: formatLineItemsSummary(orderItems),
       orderTotal: calculateOrderTotal(orderItems),
       portalUrl: `${appUrl.replace(/\/$/, "")}/orders`,
@@ -202,6 +272,8 @@ export async function submitOrderAction(
       order: orderWithDetails,
       providerName: provider.full_name,
       providerEmail: user?.email ?? "",
+      shipTo,
+      shippingAddress,
     });
   } catch (error) {
     syncError =
@@ -230,7 +302,7 @@ export async function getRecentOrders(limit = 20) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, patient:patients(id, full_name, email, phone, shipping_address, date_of_birth, weight, height, sex), order_items(*)")
+    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address), order_items(*)")
     .eq("provider_id", provider.id)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -248,7 +320,7 @@ export async function getOrderById(orderId: string) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, patient:patients(id, full_name, email, phone, shipping_address, date_of_birth, weight, height, sex), order_items(*)")
+    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address), order_items(*)")
     .eq("id", orderId)
     .eq("provider_id", provider.id)
     .single();
@@ -292,13 +364,21 @@ export async function loadPatientsForOrderForm() {
 
   const { data, error } = await supabase
     .from("patients")
-    .select("id, full_name, email, phone, shipping_address, date_of_birth, weight, height, sex")
+    .select(
+      "id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address",
+    )
     .eq("provider_id", provider.id)
-    .order("full_name", { ascending: true });
+    .order("last_name", { ascending: true })
+    .order("first_name", { ascending: true });
 
   if (error) {
     throw new Error("Unable to load patients.");
   }
 
   return data ?? [];
+}
+
+export async function loadProviderShippingForOrderForm() {
+  const provider = await requireProvider();
+  return provider.clinic_shipping_address;
 }

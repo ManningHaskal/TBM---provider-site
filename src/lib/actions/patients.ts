@@ -3,39 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProvider } from "@/lib/auth/session";
+import { formatPatientName } from "@/lib/format/patient";
+import {
+  readPatientFormData,
+  sanitizePatientInput,
+} from "@/lib/patient-form-data";
 import { createClient } from "@/lib/supabase/server";
-import type { PatientFormData } from "@/lib/types";
 
 export type PatientActionState = {
   error?: string;
   success?: string;
 };
-
-function sanitizePatientInput(data: PatientFormData) {
-  return {
-    full_name: data.full_name.trim(),
-    email: data.email.trim() || null,
-    phone: data.phone.trim() || null,
-    date_of_birth: data.date_of_birth.trim() || null,
-    weight: data.weight.trim() || null,
-    height: data.height.trim() || null,
-    sex: data.sex.trim() || null,
-    shipping_address: data.shipping_address.trim() || null,
-  };
-}
-
-function readPatientFormData(formData: FormData): PatientFormData {
-  return {
-    full_name: String(formData.get("full_name") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
-    date_of_birth: String(formData.get("date_of_birth") ?? ""),
-    weight: String(formData.get("weight") ?? ""),
-    height: String(formData.get("height") ?? ""),
-    sex: String(formData.get("sex") ?? ""),
-    shipping_address: String(formData.get("shipping_address") ?? ""),
-  };
-}
 
 export async function createPatientAction(
   _prevState: PatientActionState,
@@ -45,8 +23,8 @@ export async function createPatientAction(
   const supabase = await createClient();
   const payload = sanitizePatientInput(readPatientFormData(formData));
 
-  if (!payload.full_name) {
-    return { error: "Full name is required." };
+  if (!payload.first_name || !payload.last_name) {
+    return { error: "First and last name are required." };
   }
 
   const { error } = await supabase.from("patients").insert({
@@ -71,8 +49,8 @@ export async function updatePatientAction(
   const supabase = await createClient();
   const payload = sanitizePatientInput(readPatientFormData(formData));
 
-  if (!payload.full_name) {
-    return { error: "Full name is required." };
+  if (!payload.first_name || !payload.last_name) {
+    return { error: "First and last name are required." };
   }
 
   const { error } = await supabase
@@ -97,12 +75,13 @@ export async function getPatients(search?: string) {
     .from("patients")
     .select("*")
     .eq("provider_id", provider.id)
-    .order("full_name", { ascending: true });
+    .order("last_name", { ascending: true })
+    .order("first_name", { ascending: true });
 
   if (search?.trim()) {
     const term = search.trim();
     query = query.or(
-      `full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`,
+      `first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`,
     );
   }
 
@@ -151,3 +130,5 @@ export async function getPatientOrders(patientId: string, limit = 10) {
 
   return data ?? [];
 }
+
+export { formatPatientName };

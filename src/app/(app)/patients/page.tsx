@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getPatients } from "@/lib/actions/patients";
+import { formatPatientName } from "@/lib/format/patient";
 import { Card } from "@/components/ui/card";
 
 type PatientsPageProps = {
@@ -69,7 +70,7 @@ export default async function PatientsPage({ searchParams }: PatientsPageProps) 
                 patients.map((patient) => (
                   <tr key={patient.id} className="border-b border-tbm-border">
                     <td className="px-2 py-3 font-medium text-tbm-navy">
-                      {patient.full_name}
+                      {formatPatientName(patient)}
                     </td>
                     <td className="px-2 py-3">{patient.email ?? "—"}</td>
                     <td className="px-2 py-3">{patient.phone ?? "—"}</td>

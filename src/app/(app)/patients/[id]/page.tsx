@@ -4,6 +4,7 @@ import {
   getPatientById,
   getPatientOrders,
 } from "@/lib/actions/patients";
+import { formatPatientName } from "@/lib/format/patient";
 import { reorderAction } from "@/lib/actions/orders";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,8 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
           <Link href="/patients" className="text-sm font-medium text-tbm-red hover:underline">
             Back to patients
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-tbm-navy">
-            {patient.full_name}
+          <h1 className="tbm-heading mt-2 text-2xl font-semibold">
+            {formatPatientName(patient)}
           </h1>
         </div>
         <Link href={`/patients/${patient.id}/edit`}>
@@ -69,7 +70,7 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
             </div>
             <div>
               <dt className="text-tbm-text-muted">Shipping address</dt>
-              <dd className="font-medium text-tbm-navy whitespace-pre-wrap">
+              <dd className="whitespace-pre-wrap font-medium text-tbm-navy">
                 {patient.shipping_address ?? "—"}
               </dd>
             </div>
