@@ -11,6 +11,7 @@
     "import:products": "node scripts/import-products-from-xlsx.mjs"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "googleapis": "^173.0.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/google.maps": "^3.65.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

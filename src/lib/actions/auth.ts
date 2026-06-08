@@ -10,6 +10,8 @@ import {
 } from "@/lib/auth/invites";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeShippingAddress } from "@/lib/shipping/addresses";
+import { isAddressComplete, parseStoredAddress } from "@/lib/shipping/address-model";
 
 export type AuthActionState = {
   error?: string;
@@ -65,6 +67,12 @@ export async function signupAction(
     return { error: "Please complete all required fields." };
   }
 
+  if (!isAddressComplete(parseStoredAddress(clinicShippingAddress))) {
+    return {
+      error: "Please complete clinic address line 1, city, state, and ZIP code.",
+    };
+  }
+
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
@@ -101,7 +109,7 @@ export async function signupAction(
       full_name: fullName,
       practice_name: practiceName,
       phone: phone || null,
-      clinic_shipping_address: clinicShippingAddress,
+      clinic_shipping_address: normalizeShippingAddress(clinicShippingAddress),
       role: "provider",
     })
     .select("*")

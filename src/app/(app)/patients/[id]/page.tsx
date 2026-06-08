@@ -2,19 +2,51 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getPatientById,
+  getPatientOrderCount,
   getPatientOrders,
 } from "@/lib/actions/patients";
-import { formatPatientName } from "@/lib/format/patient";
+import { formatAllergiesDisplay, formatPatientName } from "@/lib/format/patient";
 import { reorderAction } from "@/lib/actions/orders";
+import { DeletePatientButton } from "@/components/delete-patient-button";
+import { DeletePatientOrdersButton } from "@/components/delete-patient-orders-button";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type PatientDetailPageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; success?: string }>;
 };
 
-export default async function PatientDetailPage({ params }: PatientDetailPageProps) {
+function getErrorMessage(error?: string): string | null {
+  if (error === "has_orders") {
+    return "This patient cannot be deleted because they have existing orders.";
+  }
+
+  if (error === "delete_failed") {
+    return "Unable to delete this patient. Please try again.";
+  }
+
+  if (error === "delete_orders_failed") {
+    return "Unable to delete orders. Please try again.";
+  }
+
+  return null;
+}
+
+function getSuccessMessage(success?: string): string | null {
+  if (success === "orders_deleted") {
+    return "All orders for this patient were deleted.";
+  }
+
+  return null;
+}
+
+export default async function PatientDetailPage({
+  params,
+  searchParams,
+}: PatientDetailPageProps) {
   const { id } = await params;
+  const query = await searchParams;
   const patient = await getPatientById(id);
 
   if (!patient) {
@@ -22,6 +54,9 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
   }
 
   const orders = await getPatientOrders(id);
+  const orderCount = await getPatientOrderCount(id);
+  const errorMessage = getErrorMessage(query.error);
+  const successMessage = getSuccessMessage(query.success);
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,10 +69,34 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
             {formatPatientName(patient)}
           </h1>
         </div>
-        <Link href={`/patients/${patient.id}/edit`}>
-          <Button variant="secondary">Edit patient</Button>
-        </Link>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-wrap gap-3">
+            <Link href={`/patients/${patient.id}/edit`}>
+              <Button variant="secondary">Edit patient</Button>
+            </Link>
+            <DeletePatientButton
+              patientId={patient.id}
+              patientName={formatPatientName(patient)}
+              hasOrders={orderCount > 0}
+            />
+          </div>
+          <DeletePatientOrdersButton
+            patientId={patient.id}
+            patientName={formatPatientName(patient)}
+            orderCount={orderCount}
+          />
+        </div>
       </div>
+
+      {successMessage ? (
+        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+          {successMessage}
+        </p>
+      ) : null}
+
+      {errorMessage ? (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Patient information">
@@ -57,12 +116,10 @@ export default async function PatientDetailPage({ params }: PatientDetailPagePro
               </dd>
             </div>
             <div>
-              <dt className="text-tbm-text-muted">Weight</dt>
-              <dd className="font-medium text-tbm-navy">{patient.weight ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-tbm-text-muted">Height</dt>
-              <dd className="font-medium text-tbm-navy">{patient.height ?? "—"}</dd>
+              <dt className="text-tbm-text-muted">Allergies</dt>
+              <dd className="font-medium text-tbm-navy">
+                {formatAllergiesDisplay(patient.allergies)}
+              </dd>
             </div>
             <div>
               <dt className="text-tbm-text-muted">Sex</dt>

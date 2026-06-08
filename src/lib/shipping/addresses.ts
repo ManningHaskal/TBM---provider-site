@@ -1,4 +1,15 @@
+import {
+  formatStructuredAddress,
+  parseStoredAddress,
+} from "@/lib/shipping/address-model";
+
 export type ShipTo = "clinic" | "patient";
+
+export {
+  formatStructuredAddress,
+  parseStoredAddress,
+  type StructuredAddress,
+} from "@/lib/shipping/address-model";
 
 export function getUniquePatientAddresses(
   addresses: Array<string | null | undefined>,
@@ -16,5 +27,12 @@ export function getUniquePatientAddresses(
 }
 
 export function normalizeShippingAddress(value: string): string {
+  const parsed = parseStoredAddress(value);
+  const formatted = formatStructuredAddress(parsed);
+
+  if (formatted.trim()) {
+    return formatted;
+  }
+
   return value.trim().replace(/\s+/g, " ");
 }

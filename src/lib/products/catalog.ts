@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import * as XLSX from "xlsx";
 import catalogProducts from "@/data/products.json";
+import { finalizeProducts } from "@/lib/products/dedupe";
 import type { Product } from "@/lib/types";
 import { sortProductsByCategory } from "@/lib/products/grouping";
 
@@ -39,7 +40,7 @@ function buildDisplayName(baseName: string, variantLabel: string): string {
 }
 
 export function parseProductRecords(rows: ProductRow[]): Product[] {
-  return rows
+  const parsed = rows
     .map((record, index) => {
       const sku = String(
         record.product_id ?? record.id ?? record.sku ?? record["product id"] ?? "",
@@ -68,6 +69,8 @@ export function parseProductRecords(rows: ProductRow[]): Product[] {
       } satisfies Product;
     })
     .filter((product) => product.baseName && product.sku && product.price > 0);
+
+  return finalizeProducts(parsed);
 }
 
 function rowsFromSheetRows(rows: unknown[][]): ProductRow[] {
@@ -103,10 +106,11 @@ export function loadProductsFromXlsx(
     defval: "",
   });
 
-  const products = parseProductRecords(rowsFromSheetRows(rows)).filter((product) => product.active);
+  const products = parseProductRecords(rowsFromSheetRows(rows))
+    .filter((product) => product.active);
   return sortProductsByCategory(products);
 }
 
 export function loadFallbackProductsFromJson(): Product[] {
-  return sortProductsByCategory(catalogProducts as Product[]);
+  return sortProductsByCategory(finalizeProducts(catalogProducts as Product[]));
 }

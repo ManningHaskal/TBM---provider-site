@@ -67,6 +67,86 @@ export async function updatePatientAction(
   redirect(`/patients/${patientId}`);
 }
 
+export async function deletePatientAction(patientId: string) {
+  const provider = await requireProvider();
+  const supabase = await createClient();
+
+  const { count, error: countError } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("patient_id", patientId)
+    .eq("provider_id", provider.id);
+
+  if (countError) {
+    redirect(`/patients/${patientId}?error=delete_failed`);
+  }
+
+  if (count && count > 0) {
+    redirect(`/patients/${patientId}?error=has_orders`);
+  }
+
+  const { error } = await supabase
+    .from("patients")
+    .delete()
+    .eq("id", patientId)
+    .eq("provider_id", provider.id);
+
+  if (error) {
+    redirect(`/patients/${patientId}?error=delete_failed`);
+  }
+
+  revalidatePath("/patients");
+  redirect("/patients");
+}
+
+export async function deleteAllPatientOrdersForTestingAction(patientId: string) {
+  const provider = await requireProvider();
+  const supabase = await createClient();
+
+  const { data: patient } = await supabase
+    .from("patients")
+    .select("id")
+    .eq("id", patientId)
+    .eq("provider_id", provider.id)
+    .maybeSingle();
+
+  if (!patient) {
+    redirect(`/patients/${patientId}?error=delete_orders_failed`);
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .delete()
+    .eq("patient_id", patientId)
+    .eq("provider_id", provider.id);
+
+  if (error) {
+    redirect(`/patients/${patientId}?error=delete_orders_failed`);
+  }
+
+  revalidatePath("/orders");
+  revalidatePath("/patients");
+  revalidatePath(`/patients/${patientId}`);
+  redirect(`/patients/${patientId}?success=orders_deleted`);
+}
+
+export async function getPatientOrderCount(patientId: string): Promise<number> {
+  const provider = await requireProvider();
+  const supabase = await createClient();
+
+  const { count, error } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("patient_id", patientId)
+    .eq("provider_id", provider.id);
+
+  if (error) {
+    throw new Error("Unable to count patient orders.");
+  }
+
+  return count ?? 0;
+}
+
 export async function getPatients(search?: string) {
   const provider = await requireProvider();
   const supabase = await createClient();

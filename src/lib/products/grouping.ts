@@ -1,4 +1,5 @@
 import type { Product, ProductCategoryFilter } from "@/lib/types";
+import { deduplicateProducts } from "@/lib/products/dedupe";
 
 export function sortProductsByCategory(products: Product[]): Product[] {
   const categoryOrder = new Map<string, number>();
@@ -50,9 +51,11 @@ export function getVariantsForBaseName(
   baseName: string,
   categoryFilter: ProductCategoryFilter,
 ): Product[] {
-  return filterProductsByCategory(products, categoryFilter)
-    .filter((product) => product.baseName === baseName)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.variantLabel.localeCompare(b.variantLabel));
+  return deduplicateProducts(
+    filterProductsByCategory(products, categoryFilter)
+      .filter((product) => product.baseName === baseName)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.variantLabel.localeCompare(b.variantLabel)),
+  );
 }
 
 export function findProductBySku(products: Product[], sku: string): Product | undefined {

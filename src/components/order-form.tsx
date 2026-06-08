@@ -13,8 +13,11 @@ import {
 } from "@/lib/products/grouping";
 import {
   getUniquePatientAddresses,
+  parseStoredAddress,
   type ShipTo,
+  type StructuredAddress,
 } from "@/lib/shipping/addresses";
+import { emptyStructuredAddress } from "@/lib/shipping/address-model";
 import type { OrderWithDetails, Product, ProductCategoryFilter } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,8 +37,7 @@ type PatientOption = {
   email: string | null;
   phone: string | null;
   date_of_birth: string | null;
-  weight: string | null;
-  height: string | null;
+  allergies: string | null;
   sex: string | null;
   shipping_address: string | null;
 };
@@ -90,7 +92,9 @@ export function OrderForm({
     reorderFrom?.patient_id ?? patients[0]?.id ?? "",
   );
   const [shipTo, setShipTo] = useState<ShipTo>("clinic");
-  const [shippingAddress, setShippingAddress] = useState("");
+  const [shippingAddress, setShippingAddress] = useState<StructuredAddress>(
+    emptyStructuredAddress,
+  );
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemRow[]>(() => {
     if (reorderFrom?.order_items.length) {
@@ -130,8 +134,8 @@ export function OrderForm({
   );
 
   useEffect(() => {
-    setShippingAddress(autofillAddress);
-    setIsEditingAddress(!autofillAddress);
+    setShippingAddress(parseStoredAddress(autofillAddress));
+    setIsEditingAddress(!autofillAddress.trim());
   }, [autofillAddress, shipTo, selectedPatientId, patientMode]);
 
   const productMap = useMemo(

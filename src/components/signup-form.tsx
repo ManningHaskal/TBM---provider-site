@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { signupAction, type AuthActionState } from "@/lib/actions/auth";
+import { AddressFields } from "@/components/address-fields";
 import { TextLink } from "@/components/ui/link-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/logo";
+import { emptyStructuredAddress } from "@/lib/shipping/address-model";
 
 const initialState: AuthActionState = {};
 
@@ -16,6 +18,7 @@ type SignupFormProps = {
 
 export function SignupForm({ inviteToken, inviteValid }: SignupFormProps) {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
+  const [clinicAddress, setClinicAddress] = useState(emptyStructuredAddress);
 
   if (!inviteValid || !inviteToken) {
     return (
@@ -45,16 +48,16 @@ export function SignupForm({ inviteToken, inviteValid }: SignupFormProps) {
           <Input label="Practice name" name="practice_name" required />
           <Input label="Email" name="email" type="email" autoComplete="email" required />
           <Input label="Phone (optional)" name="phone" type="tel" />
-          <label className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-tbm-navy">Clinic shipping address</span>
-            <textarea
-              name="clinic_shipping_address"
-              rows={3}
+            <AddressFields
+              value={clinicAddress}
+              onChange={setClinicAddress}
+              hiddenFieldName="clinic_shipping_address"
               required
-              className="rounded-xl border border-tbm-border px-3 py-2 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
-              placeholder="Street address, city, state, ZIP"
+              idPrefix="signup-clinic"
             />
-          </label>
+          </div>
           <Input
             label="Password"
             name="password"

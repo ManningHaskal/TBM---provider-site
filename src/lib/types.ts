@@ -21,8 +21,7 @@ export type Patient = {
   email: string | null;
   phone: string | null;
   date_of_birth: string | null;
-  weight: string | null;
-  height: string | null;
+  allergies: string | null;
   sex: string | null;
   shipping_address: string | null;
   created_at: string;
@@ -81,8 +80,7 @@ export type OrderWithDetails = Order & {
     | "email"
     | "phone"
     | "date_of_birth"
-    | "weight"
-    | "height"
+    | "allergies"
     | "sex"
     | "shipping_address"
   >;
@@ -95,8 +93,7 @@ export type PatientFormData = {
   email: string;
   phone: string;
   date_of_birth: string;
-  weight: string;
-  height: string;
+  allergies: string;
   sex: string;
   shipping_address: string;
 };

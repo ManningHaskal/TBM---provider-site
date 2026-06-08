@@ -1,13 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { AddressFields } from "@/components/address-fields";
 import type { ShipTo } from "@/lib/shipping/addresses";
+import {
+  formatStructuredAddress,
+  parseStoredAddress,
+  type StructuredAddress,
+} from "@/lib/shipping/address-model";
 
 type ShippingAddressSectionProps = {
   shipTo: ShipTo;
   onShipToChange: (shipTo: ShipTo) => void;
-  address: string;
-  onAddressChange: (address: string) => void;
+  address: StructuredAddress;
+  onAddressChange: (address: StructuredAddress) => void;
   isEditing: boolean;
   onEdit: () => void;
   knownAddresses: string[];
@@ -24,7 +30,8 @@ export function ShippingAddressSection({
   knownAddresses,
   clinicAddressAvailable,
 }: ShippingAddressSectionProps) {
-  const showReadOnly = Boolean(address.trim()) && !isEditing;
+  const formattedAddress = formatStructuredAddress(address);
+  const showReadOnly = Boolean(formattedAddress.trim()) && !isEditing;
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,7 +60,7 @@ export function ShippingAddressSection({
         </button>
       </div>
 
-      {shipTo === "clinic" && !clinicAddressAvailable && !address.trim() ? (
+      {shipTo === "clinic" && !clinicAddressAvailable && !formattedAddress.trim() ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           No clinic address on file yet. Enter your clinic shipping address below.
         </p>
@@ -62,63 +69,28 @@ export function ShippingAddressSection({
       {showReadOnly ? (
         <div className="rounded-xl border border-tbm-border bg-tbm-accent-light p-4">
           <p className="text-sm font-medium text-tbm-navy">Shipping address</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-tbm-text-muted">{address}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-tbm-text-muted">
+            {formattedAddress}
+          </p>
           <Button type="button" variant="secondary" className="mt-3" onClick={onEdit}>
             Change address
           </Button>
+          <input type="hidden" name="shipping_address" value={formattedAddress} />
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {knownAddresses.length > 0 ? (
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-tbm-navy">Use saved address (optional)</span>
-              <select
-                value=""
-                onChange={(event) => {
-                  if (event.target.value) {
-                    onAddressChange(event.target.value);
-                  }
-                }}
-                className="rounded-xl border border-tbm-border px-3 py-2 text-tbm-navy"
-              >
-                <option value="">Select a saved address</option>
-                {knownAddresses.map((knownAddress) => (
-                  <option key={knownAddress} value={knownAddress}>
-                    {knownAddress}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-tbm-navy">Shipping address</span>
-            <textarea
-              name="shipping_address"
-              rows={4}
-              value={address}
-              onChange={(event) => onAddressChange(event.target.value)}
-              className="rounded-xl border border-tbm-border px-3 py-2 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
-              placeholder="Street address, city, state, ZIP"
-              required
-            />
-            {address.trim() ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="self-start px-0"
-                onClick={() => onAddressChange("")}
-              >
-                Clear address
-              </Button>
-            ) : null}
-          </label>
-        </div>
+        <AddressFields
+          value={address}
+          onChange={onAddressChange}
+          savedAddresses={shipTo === "patient" ? knownAddresses : []}
+          hiddenFieldName="shipping_address"
+          required
+          idPrefix="order-shipping"
+        />
       )}
 
-      {showReadOnly ? (
-        <input type="hidden" name="shipping_address" value={address} />
-      ) : null}
       <input type="hidden" name="ship_to" value={shipTo} />
     </div>
   );
 }
+
+export { parseStoredAddress };

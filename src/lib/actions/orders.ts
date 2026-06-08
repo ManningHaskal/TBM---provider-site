@@ -16,6 +16,7 @@ import {
   sanitizePatientInput,
 } from "@/lib/patient-form-data";
 import { normalizeShippingAddress } from "@/lib/shipping/addresses";
+import { isAddressComplete, parseStoredAddress } from "@/lib/shipping/address-model";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderLineInput, OrderWithDetails, ShipTo } from "@/lib/types";
 
@@ -106,7 +107,13 @@ function parseShippingFromFormData(formData: FormData): {
     return { error: "Shipping address is required." };
   }
 
-  return { shipTo, shippingAddress };
+  if (!isAddressComplete(parseStoredAddress(shippingAddress))) {
+    return {
+      error: "Please complete address line 1, city, state, and ZIP code.",
+    };
+  }
+
+  return { shipTo, shippingAddress: normalizeShippingAddress(shippingAddress) };
 }
 
 async function persistShippingAddress({
@@ -227,7 +234,7 @@ export async function submitOrderAction(
   const { data: patient } = await supabase
     .from("patients")
     .select(
-      "id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address",
+      "id, first_name, last_name, email, phone, date_of_birth, allergies, sex, shipping_address",
     )
     .eq("id", patientId)
     .single();
@@ -302,7 +309,7 @@ export async function getRecentOrders(limit = 20) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address), order_items(*)")
+    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, allergies, sex, shipping_address), order_items(*)")
     .eq("provider_id", provider.id)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -320,7 +327,7 @@ export async function getOrderById(orderId: string) {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address), order_items(*)")
+    .select("*, patient:patients(id, first_name, last_name, email, phone, date_of_birth, allergies, sex, shipping_address), order_items(*)")
     .eq("id", orderId)
     .eq("provider_id", provider.id)
     .single();
@@ -365,7 +372,7 @@ export async function loadPatientsForOrderForm() {
   const { data, error } = await supabase
     .from("patients")
     .select(
-      "id, first_name, last_name, email, phone, date_of_birth, weight, height, sex, shipping_address",
+      "id, first_name, last_name, email, phone, date_of_birth, allergies, sex, shipping_address",
     )
     .eq("provider_id", provider.id)
     .order("last_name", { ascending: true })

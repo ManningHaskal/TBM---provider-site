@@ -69,3 +69,28 @@ body {
   text-transform: uppercase;
   color: var(--tbm-blue);
 }
+
+.pac-container {
+  z-index: 10000;
+  margin-top: 4px;
+  border: 1px solid var(--tbm-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(7, 31, 54, 0.12);
+  font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+}
+
+.pac-item {
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  color: var(--tbm-navy);
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background: var(--tbm-accent-light);
+}
+
+.pac-item-query {
+  color: var(--tbm-navy);
+  font-weight: 600;
+}
