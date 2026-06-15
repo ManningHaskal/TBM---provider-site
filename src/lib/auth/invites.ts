@@ -20,3 +20,18 @@ export function buildInviteUrl(token: string): string {
   const baseUrl = process.env.APP_URL ?? "http://localhost:3000";
   return `${baseUrl.replace(/\/$/, "")}/signup?invite=${token}`;
 }
+
+export function getPermanentInviteToken(): string | null {
+  const token = process.env.PERMANENT_INVITE_TOKEN?.trim();
+  return token || null;
+}
+
+export function isPermanentInviteToken(token: string): boolean {
+  const permanentToken = getPermanentInviteToken();
+  return Boolean(permanentToken && token === permanentToken);
+}
+
+export function getPermanentInviteUrl(): string | null {
+  const token = getPermanentInviteToken();
+  return token ? buildInviteUrl(token) : null;
+}

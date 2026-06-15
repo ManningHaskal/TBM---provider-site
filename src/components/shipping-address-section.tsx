@@ -5,6 +5,7 @@ import { AddressFields } from "@/components/address-fields";
 import type { ShipTo } from "@/lib/shipping/addresses";
 import {
   formatStructuredAddress,
+  isAddressComplete,
   parseStoredAddress,
   type StructuredAddress,
 } from "@/lib/shipping/address-model";
@@ -31,7 +32,7 @@ export function ShippingAddressSection({
   clinicAddressAvailable,
 }: ShippingAddressSectionProps) {
   const formattedAddress = formatStructuredAddress(address);
-  const showReadOnly = Boolean(formattedAddress.trim()) && !isEditing;
+  const showReadOnly = isAddressComplete(address) && !isEditing;
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,7 +69,7 @@ export function ShippingAddressSection({
 
       {showReadOnly ? (
         <div className="rounded-xl border border-tbm-border bg-tbm-accent-light p-4">
-          <p className="text-sm font-medium text-tbm-navy">Shipping address</p>
+          <p className="text-sm font-medium text-tbm-navy">Saved shipping address</p>
           <p className="mt-2 whitespace-pre-wrap text-sm text-tbm-text-muted">
             {formattedAddress}
           </p>

@@ -2,10 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getPatientById,
+  getPatientDeleteEligibilityForPatient,
   getPatientOrderCount,
   getPatientOrders,
 } from "@/lib/actions/patients";
 import { formatAllergiesDisplay, formatPatientName } from "@/lib/format/patient";
+import {
+  formatPatientDeleteEligibleDate,
+  getPatientDeleteBlockedMessage,
+} from "@/lib/patients/delete-eligibility";
 import { reorderAction } from "@/lib/actions/orders";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { DeletePatientOrdersButton } from "@/components/delete-patient-orders-button";
@@ -17,9 +22,16 @@ type PatientDetailPageProps = {
   searchParams: Promise<{ error?: string; success?: string }>;
 };
 
-function getErrorMessage(error?: string): string | null {
+function getErrorMessage(
+  error?: string,
+  deleteEligibility?: Awaited<ReturnType<typeof getPatientDeleteEligibilityForPatient>>,
+): string | null {
+  if (error === "delete_cooldown" && deleteEligibility) {
+    return getPatientDeleteBlockedMessage(deleteEligibility);
+  }
+
   if (error === "has_orders") {
-    return "This patient cannot be deleted because they have existing orders.";
+    return "This patient cannot be deleted yet because their last order was less than 30 days ago.";
   }
 
   if (error === "delete_failed") {
@@ -55,7 +67,8 @@ export default async function PatientDetailPage({
 
   const orders = await getPatientOrders(id);
   const orderCount = await getPatientOrderCount(id);
-  const errorMessage = getErrorMessage(query.error);
+  const deleteEligibility = await getPatientDeleteEligibilityForPatient(id);
+  const errorMessage = getErrorMessage(query.error, deleteEligibility);
   const successMessage = getSuccessMessage(query.success);
 
   return (
@@ -77,9 +90,15 @@ export default async function PatientDetailPage({
             <DeletePatientButton
               patientId={patient.id}
               patientName={formatPatientName(patient)}
-              hasOrders={orderCount > 0}
+              deleteEligibility={deleteEligibility}
             />
           </div>
+          {!deleteEligibility.canDelete && deleteEligibility.eligibleAt ? (
+            <p className="max-w-sm text-right text-xs text-tbm-text-muted">
+              Deletion available on{" "}
+              {formatPatientDeleteEligibleDate(deleteEligibility.eligibleAt)}.
+            </p>
+          ) : null}
           <DeletePatientOrdersButton
             patientId={patient.id}
             patientName={formatPatientName(patient)}

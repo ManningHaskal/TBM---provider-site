@@ -1,30 +1,37 @@
 "use client";
 
 import { deletePatientAction } from "@/lib/actions/patients";
+import { getPatientDeleteBlockedMessage } from "@/lib/patients/delete-eligibility";
+import type { PatientDeleteEligibility } from "@/lib/patients/delete-eligibility";
 import { Button } from "@/components/ui/button";
 
 type DeletePatientButtonProps = {
   patientId: string;
   patientName: string;
-  hasOrders: boolean;
+  deleteEligibility: PatientDeleteEligibility;
 };
 
 export function DeletePatientButton({
   patientId,
   patientName,
-  hasOrders,
+  deleteEligibility,
 }: DeletePatientButtonProps) {
+  const blockMessage = getPatientDeleteBlockedMessage(deleteEligibility);
+
   function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
-    if (hasOrders) {
+    if (!deleteEligibility.canDelete) {
       event.preventDefault();
-      window.alert(
-        "This patient cannot be deleted because they have existing orders on file.",
-      );
+      window.alert(blockMessage);
       return;
     }
 
+    const orderNote =
+      deleteEligibility.orderCount > 0
+        ? ` This will also delete ${deleteEligibility.orderCount} order(s) on file.`
+        : "";
+
     const confirmed = window.confirm(
-      `Delete ${patientName}? This cannot be undone.`,
+      `Delete ${patientName}? This cannot be undone.${orderNote}`,
     );
 
     if (!confirmed) {
@@ -39,7 +46,8 @@ export function DeletePatientButton({
         variant="secondary"
         className="border-red-200 text-tbm-red hover:bg-red-50"
         onClick={handleClick}
-        disabled={hasOrders}
+        disabled={!deleteEligibility.canDelete}
+        title={blockMessage || undefined}
       >
         Delete patient
       </Button>

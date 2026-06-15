@@ -13,7 +13,7 @@ export default function HomePage() {
           </div>
           <div>
             <h1 className="tbm-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Precision ordering for medical providers
+              Precision Synthesized for Advanced Research
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-base text-white/90">
               Place peptide orders on behalf of your patients. TexBioMed will invoice

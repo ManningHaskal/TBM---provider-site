@@ -3,13 +3,29 @@ import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 let loaderPromise: Promise<typeof google | null> | null = null;
 let optionsConfigured = false;
 
+const PLACEHOLDER_API_KEYS = new Set(["your-api-key", "placeholder", "changeme"]);
+
+function getPlacesApiKey(): string | undefined {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY?.trim();
+  if (!apiKey || PLACEHOLDER_API_KEYS.has(apiKey.toLowerCase())) {
+    return undefined;
+  }
+  return apiKey;
+}
+
 export function isGooglePlacesEnabled(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY);
+  return (
+    process.env.NEXT_PUBLIC_ENABLE_GOOGLE_PLACES === "true" &&
+    Boolean(getPlacesApiKey())
+  );
 }
 
 export function loadGooglePlaces(): Promise<typeof google | null> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
+  if (!isGooglePlacesEnabled()) {
+    return Promise.resolve(null);
+  }
 
+  const apiKey = getPlacesApiKey();
   if (!apiKey) {
     return Promise.resolve(null);
   }

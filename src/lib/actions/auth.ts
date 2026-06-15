@@ -7,6 +7,7 @@ import {
   generateInviteToken,
   getInviteExpiryDate,
   hashInviteToken,
+  isPermanentInviteToken,
 } from "@/lib/auth/invites";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -78,18 +79,22 @@ export async function signupAction(
   }
 
   const admin = createAdminClient();
-  const tokenHash = hashInviteToken(inviteToken);
+  const usingPermanentInvite = isPermanentInviteToken(inviteToken);
 
-  const { data: invite, error: inviteError } = await admin
-    .from("invite_tokens")
-    .select("*")
-    .eq("token_hash", tokenHash)
-    .is("used_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
+  if (!usingPermanentInvite) {
+    const tokenHash = hashInviteToken(inviteToken);
 
-  if (inviteError || !invite) {
-    return { error: "This invite link is invalid or has expired." };
+    const { data: invite, error: inviteError } = await admin
+      .from("invite_tokens")
+      .select("*")
+      .eq("token_hash", tokenHash)
+      .is("used_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (inviteError || !invite) {
+      return { error: "This invite link is invalid or has expired." };
+    }
   }
 
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -120,16 +125,27 @@ export async function signupAction(
     return { error: "Unable to create provider profile." };
   }
 
-  const { error: markUsedError } = await admin
-    .from("invite_tokens")
-    .update({
-      used_at: new Date().toISOString(),
-      used_by: provider.id,
-    })
-    .eq("id", invite.id);
+  if (!usingPermanentInvite) {
+    const tokenHash = hashInviteToken(inviteToken);
+    const { data: invite } = await admin
+      .from("invite_tokens")
+      .select("id")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
 
-  if (markUsedError) {
-    return { error: "Account created but invite could not be marked as used." };
+    if (invite) {
+      const { error: markUsedError } = await admin
+        .from("invite_tokens")
+        .update({
+          used_at: new Date().toISOString(),
+          used_by: provider.id,
+        })
+        .eq("id", invite.id);
+
+      if (markUsedError) {
+        return { error: "Account created but invite could not be marked as used." };
+      }
+    }
   }
 
   const supabase = await createClient();
@@ -150,6 +166,10 @@ export async function signupAction(
 export async function validateInviteToken(token: string): Promise<boolean> {
   if (!token) {
     return false;
+  }
+
+  if (isPermanentInviteToken(token)) {
+    return true;
   }
 
   const admin = createAdminClient();

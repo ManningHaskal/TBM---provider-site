@@ -34,13 +34,38 @@ export function formatStructuredAddress(address: StructuredAddress): string {
     return "";
   }
 
-  const cityLine = [city, state, zip].filter(Boolean).join(", ").replace(/,\s*,/g, ",");
+  const cityLine =
+    city && state && zip
+      ? `${city}, ${state} ${zip}`
+      : [city, state, zip].filter(Boolean).join(", ").replace(/,\s*,/g, ",");
 
   return [line1, line2, cityLine].filter(Boolean).join("\n");
 }
 
 export function formatStructuredAddressOneLine(address: StructuredAddress): string {
   return formatStructuredAddress(address).replace(/\n+/g, ", ");
+}
+
+function parseCityStateZipLine(line: string): Pick<StructuredAddress, "city" | "state" | "zip"> | null {
+  const cityStateZip = line.match(/^(.+),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+  if (cityStateZip) {
+    return {
+      city: cityStateZip[1].trim(),
+      state: cityStateZip[2].toUpperCase(),
+      zip: cityStateZip[3],
+    };
+  }
+
+  const cityStateCommaZip = line.match(/^(.+),\s*([A-Za-z]{2}),\s*(\d{5}(?:-\d{4})?)$/);
+  if (cityStateCommaZip) {
+    return {
+      city: cityStateCommaZip[1].trim(),
+      state: cityStateCommaZip[2].toUpperCase(),
+      zip: cityStateCommaZip[3],
+    };
+  }
+
+  return null;
 }
 
 export function parseStoredAddress(value: string | null | undefined): StructuredAddress {
@@ -53,16 +78,13 @@ export function parseStoredAddress(value: string | null | undefined): Structured
   const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
 
   if (lines.length >= 2) {
-    const lastLine = lines[lines.length - 1];
-    const cityStateZip = lastLine.match(/^(.+),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+    const cityStateZip = parseCityStateZipLine(lines[lines.length - 1]);
 
     if (cityStateZip) {
       return {
         line1: lines[0],
         line2: lines.length > 2 ? lines.slice(1, -1).join(", ") : "",
-        city: cityStateZip[1].trim(),
-        state: cityStateZip[2].toUpperCase(),
-        zip: cityStateZip[3],
+        ...cityStateZip,
       };
     }
   }

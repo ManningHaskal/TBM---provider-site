@@ -8,6 +8,10 @@ import {
   readPatientFormData,
   sanitizePatientInput,
 } from "@/lib/patient-form-data";
+import {
+  getPatientDeleteBlockedMessage,
+  getPatientDeleteEligibility,
+} from "@/lib/patients/delete-eligibility";
 import { createClient } from "@/lib/supabase/server";
 
 export type PatientActionState = {
@@ -67,7 +71,7 @@ export async function updatePatientAction(
   redirect(`/patients/${patientId}`);
 }
 
-export async function deletePatientAction(patientId: string) {
+export async function getPatientDeleteEligibilityForPatient(patientId: string) {
   const provider = await requireProvider();
   const supabase = await createClient();
 
@@ -78,11 +82,50 @@ export async function deletePatientAction(patientId: string) {
     .eq("provider_id", provider.id);
 
   if (countError) {
-    redirect(`/patients/${patientId}?error=delete_failed`);
+    throw new Error("Unable to check patient orders.");
   }
 
-  if (count && count > 0) {
-    redirect(`/patients/${patientId}?error=has_orders`);
+  const orderCount = count ?? 0;
+
+  if (orderCount === 0) {
+    return getPatientDeleteEligibility(0, null);
+  }
+
+  const { data: lastOrder, error: lastOrderError } = await supabase
+    .from("orders")
+    .select("created_at")
+    .eq("patient_id", patientId)
+    .eq("provider_id", provider.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (lastOrderError) {
+    throw new Error("Unable to check patient orders.");
+  }
+
+  return getPatientDeleteEligibility(orderCount, lastOrder?.created_at ?? null);
+}
+
+export async function deletePatientAction(patientId: string) {
+  const provider = await requireProvider();
+  const supabase = await createClient();
+  const eligibility = await getPatientDeleteEligibilityForPatient(patientId);
+
+  if (!eligibility.canDelete) {
+    redirect(`/patients/${patientId}?error=delete_cooldown`);
+  }
+
+  if (eligibility.orderCount > 0) {
+    const { error: ordersError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("patient_id", patientId)
+      .eq("provider_id", provider.id);
+
+    if (ordersError) {
+      redirect(`/patients/${patientId}?error=delete_failed`);
+    }
   }
 
   const { error } = await supabase
@@ -96,6 +139,7 @@ export async function deletePatientAction(patientId: string) {
   }
 
   revalidatePath("/patients");
+  revalidatePath("/orders");
   redirect("/patients");
 }
 

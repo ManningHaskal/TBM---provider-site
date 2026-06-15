@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { logoutAction } from "@/lib/actions/auth";
 import type { Provider } from "@/lib/types";
 import { LogoLink } from "@/components/logo";
 
@@ -42,20 +41,13 @@ export function AppNav({ provider }: AppNavProps) {
             </Link>
           ) : null}
         </nav>
-        <div className="flex items-center gap-3">
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold">{provider.full_name}</p>
-            <p className="text-xs text-white/70">{provider.practice_name}</p>
-          </div>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
+        <Link
+          href="/profile"
+          className="text-right hover:opacity-90"
+        >
+          <p className="text-sm font-semibold">{provider.full_name}</p>
+          <p className="text-xs text-white/70">{provider.practice_name}</p>
+        </Link>
       </div>
     </header>
   );

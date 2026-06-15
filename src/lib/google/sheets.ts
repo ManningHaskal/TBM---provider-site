@@ -74,6 +74,56 @@ function loadLocalProducts(): Product[] {
   return loadFallbackProductsFromJson();
 }
 
+type AppsScriptProductsResponse = {
+  products?: Array<Record<string, string>>;
+  error?: string;
+};
+
+async function loadProductsFromAppsScript(): Promise<Product[] | null> {
+  const webAppUrl = process.env.GOOGLE_PRODUCTS_WEB_APP_URL;
+  const token = process.env.GOOGLE_APPS_SCRIPT_TOKEN;
+
+  if (!webAppUrl || !token || webAppUrl.includes("your-apps-script")) {
+    return null;
+  }
+
+  const url = new URL(webAppUrl);
+  url.searchParams.set("token", token);
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Apps Script products request failed (${response.status}).`);
+  }
+
+  const data = (await response.json()) as AppsScriptProductsResponse;
+
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
+  if (!data.products?.length) {
+    return [];
+  }
+
+  return parseProductRecords(
+    data.products.map((record) => ({
+      product_id: record.product_id,
+      product: record.product,
+      dose: record.dose,
+      form: record.form,
+      delivery_method: record.delivery_method,
+      price: record.price,
+      category: record.category,
+      active: record.active ?? "true",
+      sort_order: record.sort_order ?? record.product_id,
+    })),
+  );
+}
+
 function setProductsCache(products: Product[]) {
   productsCache = {
     expiresAt: Date.now() + PRODUCTS_CACHE_TTL_MS,
@@ -86,6 +136,25 @@ export async function getProducts(forceRefresh = false): Promise<Product[]> {
 
   if (!forceRefresh && productsCache && productsCache.expiresAt > now) {
     return productsCache.products;
+  }
+
+  const webAppUrl = process.env.GOOGLE_PRODUCTS_WEB_APP_URL;
+  const appsScriptToken = process.env.GOOGLE_APPS_SCRIPT_TOKEN;
+
+  if (webAppUrl && appsScriptToken && !webAppUrl.includes("your-apps-script")) {
+    try {
+      const products = sortProductsByCategory(
+        (await loadProductsFromAppsScript())?.filter((product) => product.active) ?? [],
+      );
+      const resolved = products.length > 0 ? products : loadLocalProducts();
+      setProductsCache(resolved);
+      return resolved;
+    } catch (error) {
+      console.error("Failed to load products from Apps Script:", error);
+      const products = productsCache?.products ?? loadLocalProducts();
+      setProductsCache(products);
+      return products;
+    }
   }
 
   const sheetId = process.env.GOOGLE_PRODUCTS_SHEET_ID;

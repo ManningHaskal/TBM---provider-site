@@ -15,14 +15,22 @@ import {
   readPatientFormData,
   sanitizePatientInput,
 } from "@/lib/patient-form-data";
+import { isDateOfBirthComplete } from "@/lib/order-form-validation";
 import { normalizeShippingAddress } from "@/lib/shipping/addresses";
 import { isAddressComplete, parseStoredAddress } from "@/lib/shipping/address-model";
 import { createClient } from "@/lib/supabase/server";
+import {
+  appendShippingToNotes,
+  getSchemaSupport,
+  orderSelectColumnsLegacy,
+  orderSelectColumnsWithShipping,
+} from "@/lib/supabase/schema-support";
 import type { OrderLineInput, OrderWithDetails, ShipTo } from "@/lib/types";
 
 export type OrderActionState = {
   error?: string;
   success?: string;
+  warning?: string;
   orderId?: string;
 };
 
@@ -71,6 +79,18 @@ async function resolvePatientId(
 
   if (!payload.first_name || !payload.last_name) {
     return { error: "Patient first and last name are required." };
+  }
+
+  if (!payload.email) {
+    return { error: "Patient email is required." };
+  }
+
+  if (!payload.date_of_birth || !isDateOfBirthComplete(payload.date_of_birth)) {
+    return { error: "Patient date of birth is required (MM/DD/YYYY)." };
+  }
+
+  if (!payload.sex) {
+    return { error: "Patient sex is required." };
   }
 
   const { data, error } = await supabase
@@ -132,9 +152,11 @@ async function persistShippingAddress({
   patientAddress: string | null;
 }) {
   const supabase = await createClient();
+  const schemaSupport = await getSchemaSupport(supabase);
 
   if (
     shipTo === "clinic" &&
+    schemaSupport.providerClinicShipping &&
     shippingAddress !== normalizeShippingAddress(providerClinicAddress ?? "")
   ) {
     await supabase
@@ -160,6 +182,7 @@ export async function submitOrderAction(
 ): Promise<OrderActionState> {
   const provider = await requireProvider();
   const supabase = await createClient();
+  const schemaSupport = await getSchemaSupport(supabase);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -204,20 +227,56 @@ export async function submitOrderAction(
     };
   });
 
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert({
-      provider_id: provider.id,
-      patient_id: patientId,
-      notes,
-      ship_to: shipTo,
-      shipping_address: shippingAddress,
-    })
-    .select("id, created_at, provider_id, patient_id, notes, ship_to, shipping_address, sync_error")
-    .single();
+  type InsertedOrder = {
+    id: string;
+    created_at: string;
+    provider_id: string;
+    patient_id: string;
+    notes: string | null;
+    sync_error: string | null;
+    ship_to?: ShipTo | null;
+    shipping_address?: string | null;
+  };
+
+  let order: InsertedOrder | null = null;
+  let orderError: { code?: string; message: string } | null = null;
+
+  if (schemaSupport.orderShipping) {
+    const result = await supabase
+      .from("orders")
+      .insert({
+        provider_id: provider.id,
+        patient_id: patientId,
+        notes,
+        ship_to: shipTo,
+        shipping_address: shippingAddress,
+      })
+      .select(orderSelectColumnsWithShipping)
+      .single();
+    order = result.data;
+    orderError = result.error;
+  } else {
+    const result = await supabase
+      .from("orders")
+      .insert({
+        provider_id: provider.id,
+        patient_id: patientId,
+        notes: appendShippingToNotes(notes, shipTo, shippingAddress),
+      })
+      .select(orderSelectColumnsLegacy)
+      .single();
+    order = result.data;
+    orderError = result.error;
+  }
 
   if (orderError || !order) {
-    return { error: "Unable to create order." };
+    console.error("Order insert failed:", orderError);
+    return {
+      error:
+        orderError?.code === "PGRST204"
+          ? "Database is missing shipping columns. Run supabase/migrations/005_shipping.sql in the Supabase SQL editor."
+          : "Unable to create order.",
+    };
   }
 
   const { error: itemsError } = await supabase.from("order_items").insert(
@@ -250,6 +309,10 @@ export async function submitOrderAction(
 
   const orderWithDetails: OrderWithDetails = {
     ...order,
+    ship_to: schemaSupport.orderShipping ? order.ship_to ?? shipTo : shipTo,
+    shipping_address: schemaSupport.orderShipping
+      ? order.shipping_address ?? shippingAddress
+      : shippingAddress,
     patient: patient!,
     order_items: orderItems.map((item, index) => ({
       id: `${order.id}-${index}`,
@@ -274,17 +337,31 @@ export async function submitOrderAction(
       orderTotal: calculateOrderTotal(orderItems),
       portalUrl: `${appUrl.replace(/\/$/, "")}/orders`,
     });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync order to Google Sheets.";
+    syncError = message;
+    console.error("Google Sheets sync failed:", error);
+  }
 
+  try {
     await sendOrderNotificationEmail({
       order: orderWithDetails,
       providerName: provider.full_name,
       providerEmail: user?.email ?? "",
+      providerPractice: provider.practice_name,
+      providerPhone: provider.phone,
       shipTo,
       shippingAddress,
     });
   } catch (error) {
-    syncError =
-      error instanceof Error ? error.message : "Failed to sync order externally.";
+    const message =
+      error instanceof Error ? error.message : "Failed to send order notification email.";
+    syncError = syncError ? `${syncError} ${message}` : message;
+    console.error("Order email failed:", error);
+  }
+
+  if (syncError) {
     await supabase
       .from("orders")
       .update({ sync_error: syncError })
@@ -296,9 +373,8 @@ export async function submitOrderAction(
   revalidatePath(`/patients/${patientId}`);
 
   return {
-    success: syncError
-      ? "Order saved, but external notification had an issue."
-      : "Order submitted successfully.",
+    success: "Order submitted successfully.",
+    warning: syncError ?? undefined,
     orderId: order.id,
   };
 }

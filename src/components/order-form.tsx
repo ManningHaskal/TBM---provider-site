@@ -17,14 +17,15 @@ import {
   type ShipTo,
   type StructuredAddress,
 } from "@/lib/shipping/addresses";
-import { emptyStructuredAddress } from "@/lib/shipping/address-model";
+import { emptyStructuredAddress, isAddressComplete } from "@/lib/shipping/address-model";
+import { isShippingAddressReady } from "@/lib/order-form-validation";
 import type { OrderWithDetails, Product, ProductCategoryFilter } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FieldLabel } from "@/components/ui/field-label";
 import { PatientFieldInputs } from "@/components/patient-field-inputs";
 import {
   OrderLineProductPicker,
-  ProductCategoryFilterSelect,
 } from "@/components/order-line-product-picker";
 import { ShippingAddressSection } from "@/components/shipping-address-section";
 
@@ -55,7 +56,31 @@ type LineItemRow = {
   baseName: string;
   productSku: string;
   quantity: number;
+  categoryFilter: ProductCategoryFilter;
 };
+
+function getLineItemCategory(
+  products: Product[],
+  productSku: string,
+): ProductCategoryFilter {
+  const product = products.find((entry) => entry.sku === productSku);
+  return product?.category ?? "all";
+}
+
+function createLineItem(
+  products: Product[],
+  categoryFilter: ProductCategoryFilter = "all",
+  productSku?: string,
+): LineItemRow {
+  const selection = getInitialLineItem(products, categoryFilter, productSku);
+  return {
+    ...selection,
+    quantity: 1,
+    categoryFilter: productSku
+      ? getLineItemCategory(products, productSku)
+      : categoryFilter,
+  };
+}
 
 function getAutofillAddress({
   shipTo,
@@ -86,7 +111,6 @@ export function OrderForm({
   reorderFrom,
 }: OrderFormProps) {
   const [state, formAction, pending] = useActionState(submitOrderAction, initialState);
-  const [categoryFilter, setCategoryFilter] = useState<ProductCategoryFilter>("all");
   const [patientMode, setPatientMode] = useState<"existing" | "new">("existing");
   const [selectedPatientId, setSelectedPatientId] = useState(
     reorderFrom?.patient_id ?? patients[0]?.id ?? "",
@@ -96,20 +120,22 @@ export function OrderForm({
     emptyStructuredAddress,
   );
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [isNewPatientReady, setIsNewPatientReady] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemRow[]>(() => {
     if (reorderFrom?.order_items.length) {
       return reorderFrom.order_items.map((item) => {
-        const initial = getInitialLineItem(products, "all", item.product_sku);
+        const categoryFilter = getLineItemCategory(products, item.product_sku);
+        const initial = getInitialLineItem(products, categoryFilter, item.product_sku);
         return {
           baseName: initial.baseName,
           productSku: item.product_sku,
           quantity: item.quantity,
+          categoryFilter,
         };
       });
     }
 
-    const initial = getInitialLineItem(products, "all");
-    return [{ ...initial, quantity: 1 }];
+    return [createLineItem(products)];
   });
 
   const selectedPatient = useMemo(
@@ -134,8 +160,9 @@ export function OrderForm({
   );
 
   useEffect(() => {
-    setShippingAddress(parseStoredAddress(autofillAddress));
-    setIsEditingAddress(!autofillAddress.trim());
+    const parsed = parseStoredAddress(autofillAddress);
+    setShippingAddress(parsed);
+    setIsEditingAddress(!isAddressComplete(parsed));
   }, [autofillAddress, shipTo, selectedPatientId, patientMode]);
 
   const productMap = useMemo(
@@ -148,20 +175,31 @@ export function OrderForm({
       current.map((item) => {
         const resolved = resolveLineItemSelection(
           products,
-          categoryFilter,
+          item.categoryFilter,
           item.baseName,
           item.productSku,
         );
         return { ...item, ...resolved };
       }),
     );
-  }, [categoryFilter, products]);
+  }, [products]);
 
   const orderTotal = lineItems.reduce((total, item) => {
     const product = productMap.get(item.productSku);
     if (!product) return total;
     return total + product.price * item.quantity;
   }, 0);
+
+  const isPatientReady =
+    patientMode === "existing"
+      ? Boolean(selectedPatientId)
+      : isNewPatientReady;
+  const isShippingReady = isShippingAddressReady(shippingAddress);
+  const hasLineItems = lineItems.some(
+    (item) => item.productSku && item.quantity > 0,
+  );
+  const canSubmit =
+    products.length > 0 && hasLineItems && isPatientReady && isShippingReady;
 
   function updateLineItem(index: number, updates: Partial<LineItemRow>) {
     setLineItems((current) =>
@@ -171,9 +209,31 @@ export function OrderForm({
     );
   }
 
+  function updateLineCategory(index: number, categoryFilter: ProductCategoryFilter) {
+    setLineItems((current) =>
+      current.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        const resolved = resolveLineItemSelection(
+          products,
+          categoryFilter,
+          item.baseName,
+          item.productSku,
+        );
+
+        return {
+          ...item,
+          categoryFilter,
+          ...resolved,
+        };
+      }),
+    );
+  }
+
   function addLineItem() {
-    const initial = getInitialLineItem(products, categoryFilter);
-    setLineItems((current) => [...current, { ...initial, quantity: 1 }]);
+    setLineItems((current) => [...current, createLineItem(products)]);
   }
 
   function removeLineItem(index: number) {
@@ -185,6 +245,13 @@ export function OrderForm({
     setIsEditingAddress(false);
   }
 
+  function handlePatientModeChange(mode: "existing" | "new") {
+    setPatientMode(mode);
+    if (mode === "new") {
+      setIsNewPatientReady(false);
+    }
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="patient_mode" value={patientMode} />
@@ -192,10 +259,13 @@ export function OrderForm({
       <input type="hidden" name="line_items" value={JSON.stringify(lineItems)} />
 
       <Card title="Patient">
+        <p className="mb-4 text-xs text-tbm-text-muted">
+          Fields marked with <span className="text-tbm-red">*</span> are required.
+        </p>
         <div className="mb-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setPatientMode("existing")}
+            onClick={() => handlePatientModeChange("existing")}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${
               patientMode === "existing"
                 ? "bg-tbm-red text-white"
@@ -206,7 +276,7 @@ export function OrderForm({
           </button>
           <button
             type="button"
-            onClick={() => setPatientMode("new")}
+            onClick={() => handlePatientModeChange("new")}
             className={`rounded-full px-4 py-2 text-sm font-semibold ${
               patientMode === "new"
                 ? "bg-tbm-red text-white"
@@ -219,11 +289,12 @@ export function OrderForm({
 
         {patientMode === "existing" ? (
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-tbm-navy">Select patient</span>
+            <FieldLabel required>Select patient</FieldLabel>
             <select
               value={selectedPatientId}
               onChange={(event) => setSelectedPatientId(event.target.value)}
               className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
+              required
             >
               <option value="">Choose a patient</option>
               {patients.map((patient) => (
@@ -234,18 +305,14 @@ export function OrderForm({
             </select>
           </label>
         ) : (
-          <PatientFieldInputs />
+          <PatientFieldInputs
+            requireCoreFields
+            onValidityChange={setIsNewPatientReady}
+          />
         )}
       </Card>
 
       <Card title="Order items">
-        <div className="mb-4">
-          <ProductCategoryFilterSelect
-            products={products}
-            value={categoryFilter}
-            onChange={setCategoryFilter}
-          />
-        </div>
         <div className="flex flex-col gap-4">
           {lineItems.map((item, index) => {
             const product = productMap.get(item.productSku);
@@ -258,11 +325,25 @@ export function OrderForm({
               >
                 <OrderLineProductPicker
                   products={products}
-                  categoryFilter={categoryFilter}
+                  categoryFilter={item.categoryFilter}
                   baseName={item.baseName}
                   sku={item.productSku}
+                  onCategoryChange={(categoryFilter) =>
+                    updateLineCategory(index, categoryFilter)
+                  }
                   onBaseNameChange={(baseName) => updateLineItem(index, { baseName })}
-                  onSkuChange={(productSku) => updateLineItem(index, { productSku })}
+                  onSkuChange={(productSku) => {
+                    const selected = productMap.get(productSku);
+                    updateLineItem(index, {
+                      productSku,
+                      ...(selected
+                        ? {
+                            baseName: selected.baseName,
+                            categoryFilter: selected.category,
+                          }
+                        : {}),
+                    });
+                  }}
                 />
                 <div className="mt-3 grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:items-end">
                   <label className="flex flex-col gap-1 text-sm">
@@ -347,9 +428,15 @@ export function OrderForm({
               Cancel
             </Button>
           </Link>
-          <Button type="submit" disabled={pending || products.length === 0}>
-            {pending ? "Submitting..." : "Submit order"}
-          </Button>
+          {canSubmit ? (
+            <Button type="submit" disabled={pending}>
+              {pending ? "Submitting..." : "Submit order"}
+            </Button>
+          ) : (
+            <p className="max-w-sm self-center text-sm text-tbm-text-muted">
+              Complete required patient and shipping fields to submit this order.
+            </p>
+          )}
         </div>
       </div>
 
@@ -367,6 +454,11 @@ export function OrderForm({
             </p>
           ) : null}
         </div>
+      ) : null}
+      {state.warning ? (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Email notification failed: {state.warning}
+        </p>
       ) : null}
     </form>
   );

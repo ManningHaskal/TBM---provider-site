@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AddressFields } from "@/components/address-fields";
+import { FieldLabel } from "@/components/ui/field-label";
 import type { Patient } from "@/lib/types";
 import {
   extractDateDigits,
@@ -14,6 +15,7 @@ import {
   formatPhoneForStorage,
   parsePhoneToLocalDigits,
 } from "@/lib/format/phone";
+import { isNewPatientComplete } from "@/lib/order-form-validation";
 import { Input } from "@/components/ui/input";
 import {
   parseStoredAddress,
@@ -24,6 +26,8 @@ const sexOptions = ["Female", "Male", "Other", "Prefer not to say"];
 
 type PatientFieldInputsProps = {
   includeShippingAddress?: boolean;
+  requireCoreFields?: boolean;
+  onValidityChange?: (valid: boolean) => void;
   patient?: Pick<
     Patient,
     | "first_name"
@@ -40,7 +44,13 @@ type PatientFieldInputsProps = {
 export function PatientFieldInputs({
   patient,
   includeShippingAddress = false,
+  requireCoreFields = false,
+  onValidityChange,
 }: PatientFieldInputsProps) {
+  const [firstName, setFirstName] = useState(patient?.first_name ?? "");
+  const [lastName, setLastName] = useState(patient?.last_name ?? "");
+  const [email, setEmail] = useState(patient?.email ?? "");
+  const [sex, setSex] = useState(patient?.sex ?? "");
   const [phoneDigits, setPhoneDigits] = useState(() =>
     parsePhoneToLocalDigits(patient?.phone),
   );
@@ -51,20 +61,46 @@ export function PatientFieldInputs({
     parseStoredAddress(patient?.shipping_address),
   );
 
+  useEffect(() => {
+    if (!requireCoreFields || !onValidityChange) {
+      return;
+    }
+
+    onValidityChange(
+      isNewPatientComplete({
+        firstName,
+        lastName,
+        email,
+        dateOfBirth,
+        sex,
+      }),
+    );
+  }, [
+    requireCoreFields,
+    onValidityChange,
+    firstName,
+    lastName,
+    email,
+    dateOfBirth,
+    sex,
+  ]);
+
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
           label="First name"
           name="first_name"
-          defaultValue={patient?.first_name ?? ""}
-          required
+          value={firstName}
+          onChange={(event) => setFirstName(event.target.value)}
+          required={requireCoreFields}
         />
         <Input
           label="Last name"
           name="last_name"
-          defaultValue={patient?.last_name ?? ""}
-          required
+          value={lastName}
+          onChange={(event) => setLastName(event.target.value)}
+          required={requireCoreFields}
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -72,10 +108,12 @@ export function PatientFieldInputs({
           label="Email"
           name="email"
           type="email"
-          defaultValue={patient?.email ?? ""}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required={requireCoreFields}
         />
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">Phone #</span>
+          <FieldLabel>Phone #</FieldLabel>
           <div className="flex overflow-hidden rounded-xl border border-tbm-border bg-white focus-within:border-tbm-blue focus-within:ring-4 focus-within:ring-tbm-blue/20">
             <span className="flex items-center border-r border-tbm-border bg-tbm-accent-light px-3 text-sm font-medium text-tbm-navy">
               +1
@@ -101,7 +139,7 @@ export function PatientFieldInputs({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">Date of birth</span>
+          <FieldLabel required={requireCoreFields}>Date of birth</FieldLabel>
           <input
             name="date_of_birth"
             type="text"
@@ -113,14 +151,17 @@ export function PatientFieldInputs({
             }
             className="rounded-xl border border-tbm-border bg-white px-3 py-2.5 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
             placeholder="MM/DD/YYYY"
+            required={requireCoreFields}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">Sex</span>
+          <FieldLabel required={requireCoreFields}>Sex</FieldLabel>
           <select
             name="sex"
-            defaultValue={patient?.sex ?? ""}
+            value={sex}
+            onChange={(event) => setSex(event.target.value)}
             className="rounded-xl border border-tbm-border px-3 py-2 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4"
+            required={requireCoreFields}
           >
             <option value="">Select</option>
             {sexOptions.map((option) => (
@@ -132,7 +173,7 @@ export function PatientFieldInputs({
         </label>
       </div>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-tbm-navy">Allergies</span>
+        <FieldLabel>Allergies</FieldLabel>
         <span className="text-xs text-tbm-text-muted">Leave blank for no allergies.</span>
         <textarea
           name="allergies"
@@ -144,7 +185,7 @@ export function PatientFieldInputs({
       </label>
       {includeShippingAddress ? (
         <div className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">Shipping address (optional)</span>
+          <FieldLabel>Shipping address (optional)</FieldLabel>
           <AddressFields
             value={shippingAddress}
             onChange={setShippingAddress}

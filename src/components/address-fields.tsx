@@ -12,6 +12,7 @@ import {
   type StructuredAddress,
 } from "@/lib/shipping/address-model";
 import { isGooglePlacesEnabled, loadGooglePlaces } from "@/lib/shipping/google-places";
+import { FieldLabel } from "@/components/ui/field-label";
 
 const fieldClassName =
   "rounded-xl border border-tbm-border bg-white px-3 py-2.5 text-tbm-navy outline-none ring-tbm-blue/20 focus:border-tbm-blue focus:ring-4";
@@ -43,6 +44,10 @@ export function AddressFields({
   }, [onChange]);
 
   useEffect(() => {
+    if (!isGooglePlacesEnabled()) {
+      return;
+    }
+
     let listener: google.maps.MapsEventListener | undefined;
     let autocomplete: google.maps.places.Autocomplete | undefined;
     let cancelled = false;
@@ -82,6 +87,11 @@ export function AddressFields({
 
   return (
     <div className="flex flex-col gap-3">
+      {required ? (
+        <p className="text-xs text-tbm-text-muted">
+          Fields marked with <span className="text-tbm-red">*</span> are required.
+        </p>
+      ) : null}
       {savedAddresses.length > 0 ? (
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-tbm-navy">Saved addresses</span>
@@ -111,7 +121,7 @@ export function AddressFields({
       ) : null}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-tbm-navy">Address line 1</span>
+        <FieldLabel required={required}>Address line 1</FieldLabel>
         <input
           ref={line1Ref}
           id={`${prefix}-line1`}
@@ -126,7 +136,7 @@ export function AddressFields({
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-tbm-navy">Address line 2 (optional)</span>
+        <FieldLabel>Address line 2 (optional)</FieldLabel>
         <input
           id={`${prefix}-line2`}
           type="text"
@@ -140,7 +150,7 @@ export function AddressFields({
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_96px_128px]">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">City</span>
+          <FieldLabel required={required}>City</FieldLabel>
           <input
             id={`${prefix}-city`}
             type="text"
@@ -153,7 +163,7 @@ export function AddressFields({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">State</span>
+          <FieldLabel required={required}>State</FieldLabel>
           <input
             id={`${prefix}-state`}
             type="text"
@@ -167,7 +177,7 @@ export function AddressFields({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-tbm-navy">ZIP code</span>
+          <FieldLabel required={required}>ZIP code</FieldLabel>
           <input
             id={`${prefix}-zip`}
             type="text"
