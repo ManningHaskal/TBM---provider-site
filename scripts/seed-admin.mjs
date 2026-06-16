@@ -4,6 +4,8 @@
  * Usage:
  *   ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='secure-password' ADMIN_NAME='Your Name' ADMIN_PRACTICE='TexBioMed' node scripts/seed-admin.mjs
  *
+ * Set SUPER_ADMIN_EMAIL to the same email in .env.local for super-admin controls.
+ *
  * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
 

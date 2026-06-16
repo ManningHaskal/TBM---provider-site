@@ -33,12 +33,20 @@ export function AppNav({ provider }: AppNavProps) {
             Orders
           </Link>
           {provider.role === "admin" ? (
-            <Link
-              href="/admin/invites"
-              className="rounded-full px-4 py-2 hover:bg-white/10"
-            >
-              Invites
-            </Link>
+            <>
+              <Link
+                href="/admin/providers"
+                className="rounded-full px-4 py-2 hover:bg-white/10"
+              >
+                Accounts
+              </Link>
+              <Link
+                href="/admin/invites"
+                className="rounded-full px-4 py-2 hover:bg-white/10"
+              >
+                Invites
+              </Link>
+            </>
           ) : null}
         </nav>
         <Link
