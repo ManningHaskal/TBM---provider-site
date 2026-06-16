@@ -68,6 +68,10 @@ export function resolveLineItemSelection(
   baseName: string,
   productSku: string,
 ): { baseName: string; productSku: string } {
+  if (!baseName && !productSku) {
+    return { baseName: "", productSku: "" };
+  }
+
   const variants = getVariantsForBaseName(products, baseName, categoryFilter);
   if (variants.some((variant) => variant.sku === productSku)) {
     return { baseName, productSku };

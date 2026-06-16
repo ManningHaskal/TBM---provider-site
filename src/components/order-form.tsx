@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import {
   submitOrderAction,
   type OrderActionState,
@@ -67,18 +68,29 @@ function getLineItemCategory(
   return product?.category ?? "all";
 }
 
+function createEmptyLineItem(): LineItemRow {
+  return {
+    baseName: "",
+    productSku: "",
+    quantity: 1,
+    categoryFilter: "all",
+  };
+}
+
 function createLineItem(
   products: Product[],
   categoryFilter: ProductCategoryFilter = "all",
   productSku?: string,
 ): LineItemRow {
+  if (!productSku) {
+    return createEmptyLineItem();
+  }
+
   const selection = getInitialLineItem(products, categoryFilter, productSku);
   return {
     ...selection,
     quantity: 1,
-    categoryFilter: productSku
-      ? getLineItemCategory(products, productSku)
-      : categoryFilter,
+    categoryFilter: getLineItemCategory(products, productSku),
   };
 }
 
@@ -110,6 +122,8 @@ export function OrderForm({
   clinicShippingAddress,
   reorderFrom,
 }: OrderFormProps) {
+  const router = useRouter();
+  const handledOrderIdRef = useRef<string | null>(null);
   const [state, formAction, pending] = useActionState(submitOrderAction, initialState);
   const [patientMode, setPatientMode] = useState<"existing" | "new">("existing");
   const [selectedPatientId, setSelectedPatientId] = useState(
@@ -135,8 +149,10 @@ export function OrderForm({
       });
     }
 
-    return [createLineItem(products)];
+    return [createEmptyLineItem()];
   });
+  const [notes, setNotes] = useState(reorderFrom?.notes ?? "");
+  const [patientFieldsKey, setPatientFieldsKey] = useState(0);
 
   const selectedPatient = useMemo(
     () => patients.find((patient) => patient.id === selectedPatientId),
@@ -183,6 +199,25 @@ export function OrderForm({
       }),
     );
   }, [products]);
+
+  useEffect(() => {
+    if (!state.orderId || handledOrderIdRef.current === state.orderId) {
+      return;
+    }
+
+    handledOrderIdRef.current = state.orderId;
+    window.alert("Order placed successfully.");
+
+    setPatientMode("existing");
+    setSelectedPatientId(patients[0]?.id ?? "");
+    setShipTo("clinic");
+    setIsNewPatientReady(false);
+    setIsEditingAddress(false);
+    setNotes("");
+    setPatientFieldsKey((current) => current + 1);
+    setLineItems([createEmptyLineItem()]);
+    router.refresh();
+  }, [state.orderId, patients, router]);
 
   const orderTotal = lineItems.reduce((total, item) => {
     const product = productMap.get(item.productSku);
@@ -233,7 +268,7 @@ export function OrderForm({
   }
 
   function addLineItem() {
-    setLineItems((current) => [...current, createLineItem(products)]);
+    setLineItems((current) => [...current, createEmptyLineItem()]);
   }
 
   function removeLineItem(index: number) {
@@ -306,6 +341,7 @@ export function OrderForm({
           </label>
         ) : (
           <PatientFieldInputs
+            key={patientFieldsKey}
             requireCoreFields
             onValidityChange={setIsNewPatientReady}
           />
@@ -394,7 +430,8 @@ export function OrderForm({
           <textarea
             name="notes"
             rows={3}
-            defaultValue={reorderFrom?.notes ?? ""}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
             className="rounded-lg border border-tbm-border px-3 py-2 text-tbm-navy"
           />
         </label>
@@ -444,16 +481,6 @@ export function OrderForm({
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
-      ) : null}
-      {state.success ? (
-        <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-          <p>{state.success}</p>
-          {state.orderId ? (
-            <p className="mt-1 font-medium">
-              Order reference: {state.orderId.slice(0, 8).toUpperCase()}
-            </p>
-          ) : null}
-        </div>
       ) : null}
       {state.warning ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">

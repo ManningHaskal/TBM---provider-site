@@ -49,12 +49,13 @@ export function SignupForm({ inviteToken, inviteValid }: SignupFormProps) {
           <Input label="Email" name="email" type="email" autoComplete="email" required />
           <Input label="Phone (optional)" name="phone" type="tel" />
           <div className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-tbm-navy">Clinic shipping address</span>
+            <span className="font-medium text-tbm-navy">
+              Clinic shipping address (optional)
+            </span>
             <AddressFields
               value={clinicAddress}
               onChange={setClinicAddress}
               hiddenFieldName="clinic_shipping_address"
-              required
               idPrefix="signup-clinic"
             />
           </div>

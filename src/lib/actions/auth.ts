@@ -64,11 +64,14 @@ export async function signupAction(
     return { error: "A valid invite link is required to create an account." };
   }
 
-  if (!email || !password || !fullName || !practiceName || !clinicShippingAddress) {
+  if (!email || !password || !fullName || !practiceName) {
     return { error: "Please complete all required fields." };
   }
 
-  if (!isAddressComplete(parseStoredAddress(clinicShippingAddress))) {
+  if (
+    clinicShippingAddress &&
+    !isAddressComplete(parseStoredAddress(clinicShippingAddress))
+  ) {
     return {
       error: "Please complete clinic address line 1, city, state, and ZIP code.",
     };
@@ -114,7 +117,9 @@ export async function signupAction(
       full_name: fullName,
       practice_name: practiceName,
       phone: phone || null,
-      clinic_shipping_address: normalizeShippingAddress(clinicShippingAddress),
+      clinic_shipping_address: clinicShippingAddress
+        ? normalizeShippingAddress(clinicShippingAddress)
+        : null,
       role: "provider",
     })
     .select("*")
