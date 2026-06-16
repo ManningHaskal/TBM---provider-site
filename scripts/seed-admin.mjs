@@ -88,6 +88,11 @@ if (!userId) {
   console.log("Updated password for existing admin user.");
 }
 
+const superAdminEmail = (process.env.SUPER_ADMIN_EMAIL ?? process.env.ADMIN_EMAIL ?? email)
+  .trim()
+  .toLowerCase();
+const role = email.trim().toLowerCase() === superAdminEmail ? "super_admin" : "admin";
+
 const { data: provider, error: providerError } = await supabase
   .from("providers")
   .upsert(
@@ -95,7 +100,7 @@ const { data: provider, error: providerError } = await supabase
       user_id: userId,
       full_name: fullName,
       practice_name: practiceName,
-      role: "admin",
+      role,
     },
     { onConflict: "user_id" },
   )

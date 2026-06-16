@@ -87,7 +87,9 @@ export default async function AdminProvidersPage({
                     </td>
                     <td className="px-2 py-3">{account.practice_name}</td>
                     <td className="px-2 py-3">{account.email}</td>
-                    <td className="px-2 py-3 capitalize">{account.role}</td>
+                    <td className="px-2 py-3 capitalize">
+                      {account.role === "super_admin" ? "Super admin" : account.role}
+                    </td>
                     <td className="px-2 py-3">{account.patientCount}</td>
                     <td className="px-2 py-3">{account.orderCount}</td>
                     <td className="px-2 py-3">

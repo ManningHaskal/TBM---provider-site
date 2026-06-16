@@ -9,6 +9,7 @@ import {
   hashInviteToken,
   isPermanentInviteToken,
 } from "@/lib/auth/invites";
+import { isAdminRole } from "@/lib/auth/super-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeShippingAddress } from "@/lib/shipping/addresses";
@@ -210,7 +211,7 @@ export async function createInviteAction(): Promise<{
     .eq("user_id", user.id)
     .single();
 
-  if (!provider || provider.role !== "admin") {
+  if (!provider || !isAdminRole(provider.role)) {
     return { error: "Only admins can create invites." };
   }
 

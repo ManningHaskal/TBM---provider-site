@@ -4,12 +4,13 @@ import {
   getAccountDeleteEligibilityForAccount,
 } from "@/lib/actions/admin-account-actions";
 import { getProviderAccountById } from "@/lib/actions/admin-providers";
-import { isSuperAdminEmail } from "@/lib/auth/super-admin";
+import { isSuperAdminAccount, resolveSuperAdminViewer } from "@/lib/auth/super-admin";
 import { requireAdmin } from "@/lib/auth/session";
 import { formatAllergiesDisplay, formatPatientName } from "@/lib/format/patient";
 import { calculateOrderTotal } from "@/lib/google/sheets";
 import { getAccountDeleteBlockedMessage } from "@/lib/providers/delete-eligibility";
 import { createClient } from "@/lib/supabase/server";
+import type { ProviderRole } from "@/lib/types";
 import { AdminAccountActions } from "@/components/admin-account-actions";
 import { Card } from "@/components/ui/card";
 
@@ -83,9 +84,20 @@ export default async function AdminProviderDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const viewerEmail = user?.email ?? null;
-  const isSuperAdminViewer = isSuperAdminEmail(viewerEmail);
-  const isSuperAdminTarget = isSuperAdminEmail(account.email);
+  const viewer = user
+    ? await resolveSuperAdminViewer(
+        currentAdmin.id,
+        user.id,
+        currentAdmin.role,
+        user.email,
+      )
+    : { isSuperAdmin: false, email: null, role: currentAdmin.role };
+
+  const isSuperAdminViewer = viewer.isSuperAdmin;
+  const isSuperAdminTarget = isSuperAdminAccount(
+    account.role as ProviderRole,
+    account.email,
+  );
   const isSelf = currentAdmin.id === account.id;
   const deleteEligibility = await getAccountDeleteEligibilityForAccount(account.id);
   const errorMessage = getErrorMessage(query.error, deleteEligibility);
@@ -96,7 +108,12 @@ export default async function AdminProviderDetailPage({
     0,
   );
 
-  const roleLabel = account.role === "admin" ? "Admin" : "Provider";
+  const roleLabel =
+    account.role === "super_admin"
+      ? "Super admin"
+      : account.role === "admin"
+        ? "Admin"
+        : "Provider";
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,7 +130,6 @@ export default async function AdminProviderDetailPage({
           </h1>
           <p className="text-sm text-tbm-text-muted">
             {account.practice_name} · {roleLabel}
-            {isSuperAdminTarget ? " · Super admin" : null}
           </p>
         </div>
         <AdminAccountActions

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isAdminRole } from "@/lib/auth/super-admin";
 import type { Provider } from "@/lib/types";
 import { LogoLink } from "@/components/logo";
 
@@ -32,7 +33,7 @@ export function AppNav({ provider }: AppNavProps) {
           >
             Orders
           </Link>
-          {provider.role === "admin" ? (
+          {isAdminRole(provider.role) ? (
             <>
               <Link
                 href="/admin/providers"

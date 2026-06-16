@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getAuthEmail,
+  isAdminRole,
+  syncSuperAdminRoleIfNeeded,
+} from "@/lib/auth/super-admin";
 import type { Provider } from "@/lib/types";
 
 export async function requireUser() {
@@ -33,13 +38,17 @@ export async function requireProvider(): Promise<Provider> {
 }
 
 export async function requireAdmin(): Promise<Provider> {
+  const user = await requireUser();
   const provider = await requireProvider();
 
-  if (provider.role !== "admin") {
+  if (!isAdminRole(provider.role)) {
     redirect("/home");
   }
 
-  return provider;
+  const email = getAuthEmail(user);
+  const role = await syncSuperAdminRoleIfNeeded(provider.id, provider.role, email);
+
+  return { ...provider, role };
 }
 
 export async function getOptionalProvider(): Promise<Provider | null> {

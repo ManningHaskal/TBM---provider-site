@@ -1,4 +1,4 @@
-export type ProviderRole = "provider" | "admin";
+export type ProviderRole = "provider" | "admin" | "super_admin";
 
 export type ShipTo = "clinic" | "patient";
 

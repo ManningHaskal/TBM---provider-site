@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { isSuperAdminEmail } from "@/lib/auth/super-admin";
+import {
+  getAuthEmail,
+  isAdminRole,
+  isSuperAdminAccount,
+  resolveSuperAdminViewer,
+} from "@/lib/auth/super-admin";
 import { getAccountDeleteEligibility } from "@/lib/providers/delete-eligibility";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { ProviderRole } from "@/lib/types";
 
 type AdminActor = {
   providerId: string;
@@ -19,7 +25,7 @@ async function requireAdminActor(): Promise<AdminActor | null> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.email) {
+  if (!user) {
     return null;
   }
 
@@ -29,14 +35,21 @@ async function requireAdminActor(): Promise<AdminActor | null> {
     .eq("user_id", user.id)
     .single();
 
-  if (!provider || provider.role !== "admin") {
+  if (!provider || !isAdminRole(provider.role as ProviderRole)) {
     return null;
   }
 
+  const viewer = await resolveSuperAdminViewer(
+    provider.id,
+    user.id,
+    provider.role as ProviderRole,
+    getAuthEmail(user),
+  );
+
   return {
     providerId: provider.id,
-    email: user.email,
-    isSuperAdmin: isSuperAdminEmail(user.email),
+    email: viewer.email ?? "",
+    isSuperAdmin: viewer.isSuperAdmin,
   };
 }
 
@@ -54,12 +67,15 @@ async function getTargetAccount(providerId: string) {
   }
 
   const { data: authData } = await admin.auth.admin.getUserById(provider.user_id);
-  const email = authData.user?.email ?? null;
+  const email = getAuthEmail(authData.user ?? null);
 
   return {
     ...provider,
     email,
-    isSuperAdminTarget: isSuperAdminEmail(email),
+    isSuperAdminTarget: isSuperAdminAccount(
+      provider.role as ProviderRole,
+      email,
+    ),
   };
 }
 
@@ -109,7 +125,7 @@ export async function promoteAccountToAdminAction(providerId: string) {
     redirect("/admin/providers?error=not_found");
   }
 
-  if (target.role === "admin") {
+  if (target.role === "admin" || target.role === "super_admin") {
     redirect(`/admin/providers/${providerId}?error=already_admin`);
   }
 
@@ -185,7 +201,10 @@ export async function deleteAccountAction(providerId: string) {
     redirect(`/admin/providers/${providerId}?error=super_admin_protected`);
   }
 
-  if (target.role === "admin" && !actor.isSuperAdmin) {
+  if (
+    (target.role === "admin" || target.role === "super_admin") &&
+    !actor.isSuperAdmin
+  ) {
     redirect(`/admin/providers/${providerId}?error=admin_delete_forbidden`);
   }
 
